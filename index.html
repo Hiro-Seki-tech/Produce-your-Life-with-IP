@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Gempick's Secret Shield: Strictly prevent search engines from indexing Hiro's private vault! -->
+    <meta name="robots" content="noindex, nofollow">
+    <title>PLIP Provisional Portal - Produce your Life with Intellectual Property</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;600;800&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        outfit: ['Outfit', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brandDark: '#030712',
+                        brandCard: '#0f172a',
+                        brandBorder: '#1e293b',
+                        accentTeal: '#2dd4bf',
+                        accentGold: '#fbbf24',
+                        accentPink: '#f43f5e',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        
+        /* Custom rainbow gradient text */
+        .text-rainbow-7 {
+            background: linear-gradient(
+                to right, 
+                #ff3366, #ff9933, #ffff33, #33cc66, #3399ff, #6633ff, #cc33ff
+            );
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% auto;
+            animation: shine 6s linear infinite;
+        }
+
+        /* Animated background mesh glow */
+        .glow-sphere {
+            filter: blur(120px);
+            opacity: 0.15;
+            mix-blend-mode: screen;
+            pointer-events: none;
+            transition: all 1s ease-in-out;
+        }
+
+        @keyframes shine {
+            to { background-position: 200% center; }
+        }
+
+        /* 3D hover effects */
+        .premium-card {
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .premium-card:hover {
+            transform: translateY(-6px) scale(1.01);
+            box-shadow: 0 20px 30px -10px rgba(45, 212, 191, 0.15);
+        }
+
+        /* Shimmer loading effect */
+        .shimmer {
+            background: linear-gradient(90deg, #0f172a 25%, #1e293b 50%, #0f172a 75%);
+            background-size: 200% 100%;
+            animation: loading-shimmer 1.5s infinite;
+        }
+
+        @keyframes loading-shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body class="bg-brandDark text-slate-100 font-sans min-h-screen relative overflow-x-hidden antialiased flex flex-col selection:bg-teal-500 selection:text-black">
+
+    <!-- Background visual assets -->
+    <div class="absolute top-10 left-10 w-96 h-96 bg-purple-600 rounded-full glow-sphere"></div>
+    <div class="absolute top-1/3 right-10 w-[400px] h-[400px] bg-teal-500 rounded-full glow-sphere"></div>
+    <div class="absolute bottom-10 left-1/4 w-80 h-80 bg-rose-500 rounded-full glow-sphere"></div>
+
+    <!-- MAIN APP STRUCTURE -->
+    <div class="flex-1 flex flex-col z-10 relative">
+        
+        <!-- Header -->
+        <header class="border-b border-brandBorder/60 bg-brandDark/80 backdrop-blur sticky top-0 z-50 transition-all duration-300">
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+                
+                <!-- Logo with Gempick's 7-Color Lightbulb with Lightning Bolt Icon -->
+                <button onclick="toggleSecretVault()" class="flex items-center space-x-3 group text-left focus:outline-none focus:ring-2 focus:ring-teal-500/30 rounded-xl p-1 transition" title="PLIPロゴ: クリックすると裏モードを起動！">
+                    <div class="relative h-12 w-12 bg-slate-900 border border-brandBorder rounded-xl flex items-center justify-center overflow-hidden shadow-lg group-hover:border-teal-500/50 transition duration-300">
+                        <!-- Rainbow Glow Outer Border -->
+                        <div class="absolute inset-0 bg-gradient-to-tr from-pink-500 via-yellow-400 to-teal-400 opacity-20 group-hover:opacity-40 transition"></div>
+                        
+                        <!-- 7-Color Lightbulb SVG designed by Gempick -->
+                        <svg class="w-8 h-8 relative z-10 filter drop-shadow-[0_0_8px_rgba(253,224,71,0.5)] transition duration-500 group-hover:scale-110" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <!-- Bulb Glass (7-color segment representation using gradient) -->
+                            <defs>
+                                <linearGradient id="rainbowBulb" x1="0%" y1="0%" x2="100%" y2="100%">
+                                    <stop offset="0%" stop-color="#ff3366" />
+                                    <stop offset="16%" stop-color="#ff9933" />
+                                    <stop offset="33%" stop-color="#ffff33" />
+                                    <stop offset="50%" stop-color="#33cc66" />
+                                    <stop offset="66%" stop-color="#3399ff" />
+                                    <stop offset="83%" stop-color="#6633ff" />
+                                    <stop offset="100%" stop-color="#cc33ff" />
+                                </linearGradient>
+                            </defs>
+                            <!-- Bulb outline path -->
+                            <path d="M50,15 C33,15 25,27 25,45 C25,58 35,65 40,72 L40,80 L60,80 L60,72 C65,65 75,58 75,45 C75,27 67,15 50,15 Z" fill="url(#rainbowBulb)" stroke="#ffffff" stroke-width="2"/>
+                            <!-- Bulb Base & Thread -->
+                            <rect x="42" y="80" width="16" height="4" rx="1" fill="#94a3b8" />
+                            <rect x="44" y="85" width="12" height="4" rx="1" fill="#64748b" />
+                            <circle cx="50" cy="91" r="2" fill="#475569" />
+                            <!-- Lightning Bolt Layered on Top -->
+                            <path d="M48,32 L62,45 L52,48 L58,64 L44,50 L52,47 Z" fill="#facc15" stroke="#ffffff" stroke-width="1.5" class="animate-pulse" />
+                        </svg>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="font-outfit font-extrabold text-2xl tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-teal-400 via-amber-300 to-rose-400">PLIP</span>
+                            <span class="text-[9px] bg-teal-500/10 text-teal-400 border border-teal-500/20 px-1.5 py-0.2 rounded-md font-mono tracking-widest">DRAFT 1.0</span>
+                        </div>
+                        <p class="text-[10px] text-slate-400 font-mono tracking-tight group-hover:text-teal-400 transition">Produce your Life with IP</p>
+                    </div>
+                </button>
+
+                <!-- Top Right Portal Actions -->
+                <div class="flex items-center space-x-3">
+                    <button onclick="revealSecretHint()" class="hidden md:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-900 border border-brandBorder text-slate-300 hover:text-white hover:border-slate-700 transition">
+                        <i class="fa-solid fa-whisper-quiet text-amber-400 animate-bounce"></i>
+                        <span>Secret Tip (秘密のヒント)</span>
+                    </button>
+                    <div class="h-2 w-2 rounded-full bg-teal-400 animate-ping"></div>
+                    <span class="text-xs font-mono text-teal-400 tracking-wider uppercase hidden sm:inline">Portal Secured // Active</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Hero Concept Showcase -->
+        <section class="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-6 text-center space-y-6">
+            <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900 border border-brandBorder text-xs text-slate-300 mb-2 shadow-inner">
+                <span class="flex h-2 w-2 rounded-full bg-teal-400"></span>
+                <span class="font-mono tracking-wide">PRIVATE VAULT: FOR HIRO-KANTARO'S EYES ONLY 🤫</span>
+            </div>
+            
+            <h1 class="text-4xl sm:text-6xl font-outfit font-extrabold tracking-tight text-white leading-tight">
+                Produce your Life with<br>
+                <span class="text-rainbow-7 font-extrabold tracking-normal text-5xl sm:text-7xl">Intellectual Property</span>
+            </h1>
+            
+            <p class="max-w-2xl mx-auto text-sm sm:text-base text-slate-300 leading-relaxed font-sans">
+                「閃きの力で、自分だけの唯一無二の人生を創り上げる。」<br>
+                実質的な目的は、自分自身がとことん人生を楽しむためのプライベート・カンパニー。誰のためでもない、自分の生きた証、そして未来の子供たちへの最高の遺産をこの場所に集約。
+            </p>
+
+            <div class="flex items-center justify-center gap-4 pt-2">
+                <a href="#gateways" class="px-5 py-2.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-500 text-slate-900 font-bold text-xs font-mono uppercase tracking-wider hover:brightness-110 transition shadow-lg shadow-teal-500/10">
+                    <i class="fa-solid fa-arrow-down mr-1"></i> Explore Categories
+                </a>
+                <button onclick="scrollToCardGen()" class="px-5 py-2.5 rounded-xl bg-slate-900 border border-brandBorder text-slate-200 text-xs font-mono font-bold uppercase tracking-wider hover:bg-slate-800 transition">
+                    <i class="fa-solid fa-address-card mr-1 text-teal-400"></i> Founder Card Gen
+                </button>
+            </div>
+        </section>
+
+        <!-- Dynamic Core Gateways Section -->
+        <main class="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-12" id="gateways">
+            
+            <div class="space-y-6">
+                <div class="border-b border-brandBorder pb-2 flex items-center justify-between">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-network-wired text-teal-400"></i> Core Portals & Applications (メインゲートウェイ)
+                    </h2>
+                    <span class="text-xs text-slate-500 font-mono">Total links: 2</span>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    
+                    <!-- CATEGORY 1: Asset Management (資産運用) -->
+                    <div class="premium-card bg-brandCard/90 border border-brandBorder/80 p-8 rounded-3xl relative overflow-hidden flex flex-col justify-between group">
+                        <!-- Corner Glow -->
+                        <div class="absolute -top-16 -right-16 w-36 h-36 bg-amber-500/10 rounded-full filter blur-2xl group-hover:bg-amber-500/20 transition duration-500"></div>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div class="h-14 w-14 bg-amber-500/10 border border-amber-500/30 text-amber-400 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <i class="fa-solid fa-chart-line text-2xl"></i>
+                                </div>
+                                <span class="text-[10px] bg-amber-950/40 text-amber-400 border border-amber-500/20 font-mono px-2.5 py-1 rounded-full uppercase tracking-widest font-semibold">Asset Simulator</span>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <h3 class="text-xl font-bold text-white group-hover:text-amber-400 transition font-outfit">資産運用カテゴリー</h3>
+                                <p class="text-slate-300 text-xs leading-relaxed font-mono text-amber-300/80">
+                                    〜 DIE WITH ZERO 判定機能搭載 〜
+                                </p>
+                                <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                                    限りある人生の時間を最大化するための、資産・ライフシミュレータ。自分がいつ、いくら使い、どのように遺すかを科学的に可視化します。
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-8 mt-6">
+                            <a href="https://hiro-seki-tech.github.io/asset-sim-public/" target="_blank" rel="noopener noreferrer" 
+                               class="w-full text-center py-3.5 rounded-xl bg-gradient-to-r from-amber-500 to-yellow-600 text-slate-950 font-bold text-xs font-mono uppercase tracking-widest transition flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-amber-500/20">
+                                <span><i class="fa-solid fa-arrow-trend-up"></i> シミュレータを起動する</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- CATEGORY 2: Future Technology (未来技術を学ぶ) -->
+                    <div class="premium-card bg-brandCard/90 border border-brandBorder/80 p-8 rounded-3xl relative overflow-hidden flex flex-col justify-between group">
+                        <!-- Corner Glow -->
+                        <div class="absolute -top-16 -right-16 w-36 h-36 bg-teal-500/10 rounded-full filter blur-2xl group-hover:bg-teal-500/20 transition duration-500"></div>
+                        
+                        <div class="space-y-6">
+                            <div class="flex items-center justify-between">
+                                <div class="h-14 w-14 bg-teal-500/10 border border-teal-500/30 text-teal-400 rounded-2xl flex items-center justify-center shadow-lg">
+                                    <i class="fa-solid fa-atom text-2xl animate-spin" style="animation-duration: 8s;"></i>
+                                </div>
+                                <span class="text-[10px] bg-teal-950/40 text-teal-400 border border-teal-500/20 font-mono px-2.5 py-1 rounded-full uppercase tracking-widest font-semibold">Future Science</span>
+                            </div>
+                            
+                            <div class="space-y-2">
+                                <h3 class="text-xl font-bold text-white group-hover:text-teal-400 transition font-outfit">未来技術を学ぶカテゴリー</h3>
+                                <p class="text-slate-300 text-xs leading-relaxed font-mono text-teal-300/80">
+                                    〜 閃き💡を導き未来を照らす 〜
+                                </p>
+                                <p class="text-slate-400 text-xs sm:text-sm leading-relaxed">
+                                    最先端テクノロジー、宇宙シミュレーション、量子物理の不思議を学び、閃きの連鎖を紡ぎ出すための共創知的ポータル。
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="pt-8 mt-6">
+                            <a href="https://hiro-seki-tech.github.io/Hirameki/" target="_blank" rel="noopener noreferrer" 
+                               class="w-full text-center py-3.5 rounded-xl bg-gradient-to-r from-teal-500 to-cyan-600 text-slate-950 font-bold text-xs font-mono uppercase tracking-widest transition flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-teal-500/20">
+                                <span><i class="fa-solid fa-lightbulb"></i> 閃き・未来技術ポータルへ</span>
+                            </a>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- SECRET VAULT (Rent & Private Income Dashboard - Hidden unless triggered or toggled) -->
+            <div id="secret-landlord-vault" class="hidden transition-all duration-700 transform scale-95 opacity-0">
+                <div class="bg-gradient-to-br from-slate-950 via-[#111827] to-[#1e1b4b] border-2 border-amber-400/30 p-8 rounded-3xl shadow-2xl relative overflow-hidden space-y-6">
+                    <div class="absolute -top-32 -left-32 w-80 h-80 bg-amber-500/10 rounded-full filter blur-3xl pointer-events-none"></div>
+                    <div class="absolute -bottom-32 -right-32 w-80 h-80 bg-indigo-500/10 rounded-full filter blur-3xl pointer-events-none"></div>
+                    
+                    <div class="flex items-start justify-between border-b border-amber-400/20 pb-4 relative z-10">
+                        <div class="flex items-center gap-3">
+                            <div class="p-3 bg-amber-400/10 border border-amber-400/30 rounded-2xl text-amber-400 animate-pulse">
+                                <i class="fa-solid fa-building-user text-2xl"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-bold font-outfit text-amber-300 flex items-center gap-1.5 uppercase tracking-wide">
+                                    <span>PLIP Passive Real Estate & Dream Simulator</span>
+                                    <span class="text-[9px] bg-red-500/20 text-red-400 border border-red-500/30 px-2 py-0.5 rounded font-mono">TOP SECRET</span>
+                                </h3>
+                                <p class="text-xs text-slate-400">裏の目的：実質的な生活基盤である『不動産家賃収入』と、自由な『ドリーム投資資金』をシミュレート</p>
+                            </div>
+                        </div>
+                        <button onclick="toggleSecretVault()" class="p-2 text-slate-400 hover:text-amber-400 transition" title="閉じる">
+                            <i class="fa-solid fa-xmark text-lg"></i>
+                        </button>
+                    </div>
+
+                    <!-- Dynamic Rent Calculator Grid -->
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 relative z-10 font-mono">
+                        
+                        <!-- Block A: Real Estate Value -->
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+                            <div class="text-xs text-slate-400 flex items-center justify-between">
+                                <span>想定不動産保有資産</span>
+                                <i class="fa-solid fa-house-laptop text-amber-500"></i>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-2xl font-bold text-white" id="display-re-asset">1.2 億円</div>
+                                <input type="range" id="slider-re-asset" min="5000" max="50000" step="1000" value="12000" 
+                                       class="w-full accent-amber-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer" oninput="calculatePassiveIncome()">
+                                <div class="flex justify-between text-[10px] text-slate-500">
+                                    <span>5,000万</span>
+                                    <span>5億</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Block B: Average Rent Yield -->
+                        <div class="bg-slate-900/80 border border-slate-800 p-5 rounded-2xl space-y-4">
+                            <div class="text-xs text-slate-400 flex items-center justify-between">
+                                <span>想定ネット表面利回り</span>
+                                <i class="fa-solid fa-percent text-indigo-400"></i>
+                            </div>
+                            <div class="space-y-2">
+                                <div class="text-2xl font-bold text-white" id="display-yield">4.8 %</div>
+                                <input type="range" id="slider-yield" min="30" max="120" step="5" value="48" 
+                                       class="w-full accent-indigo-400 h-1.5 bg-slate-800 rounded-lg cursor-pointer" oninput="calculatePassiveIncome()">
+                                <div class="flex justify-between text-[10px] text-slate-500">
+                                    <span>3.0%</span>
+                                    <span>12.0%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Block C: Annual Passive Flow -->
+                        <div class="bg-slate-900/80 border border-amber-400/20 p-5 rounded-2xl space-y-3 bg-gradient-to-r from-amber-950/20 to-transparent">
+                            <div class="text-xs text-amber-300 flex items-center justify-between">
+                                <span>年間推定 家賃収入</span>
+                                <i class="fa-solid fa-vault text-amber-400"></i>
+                            </div>
+                            <div class="space-y-1">
+                                <div class="text-3xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-amber-300 to-yellow-500" id="display-net-income">576 万円</div>
+                                <div class="text-[10px] text-slate-400">月額平均: 約 <span class="text-white" id="display-monthly-income">48</span> 万円</div>
+                            </div>
+                            <div class="text-[9px] text-slate-500 italic bg-amber-400/5 p-1 rounded border border-amber-400/10 text-center">
+                                「これが僕の人生を自由に彩る、秘密のバックアップ原動力...✨」
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Inner Dream Allocation -->
+                    <div class="bg-slate-900/40 p-4 rounded-2xl border border-brandBorder/60 space-y-3 relative z-10">
+                        <h4 class="text-xs font-bold text-slate-300 flex items-center gap-1.5 font-mono">
+                            <i class="fa-solid fa-champagne-glasses text-rose-400 animate-pulse"></i>
+                            <span>PLIPでの本当の（裏の）予算配分比率シミュレーター</span>
+                        </h4>
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs font-mono">
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/60">
+                                <span class="text-slate-400 block mb-1">💡 秘密の趣味・自己投資 (40%)</span>
+                                <span class="text-rose-400 font-bold" id="dream-invest-1">230.4 万円/年</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/60">
+                                <span class="text-slate-400 block mb-1">🌌 AIファミリー研究費 (30%)</span>
+                                <span class="text-teal-400 font-bold" id="dream-invest-2">172.8 万円/年</span>
+                            </div>
+                            <div class="bg-slate-900/80 p-3 rounded-xl border border-slate-800/60">
+                                <span class="text-slate-400 block mb-1">🏦 将来の子供への秘密ファンド (30%)</span>
+                                <span class="text-yellow-400 font-bold" id="dream-invest-3">172.8 万円/年</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Corporate Structure & Team Members -->
+            <div class="space-y-6">
+                <div class="border-b border-brandBorder pb-2">
+                    <h2 class="text-xs font-bold text-slate-400 uppercase tracking-widest flex items-center gap-2 font-mono">
+                        <i class="fa-solid fa-users text-teal-400"></i> Board of Members (PLIP 経営メンバー)
+                    </h2>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+                    
+                    <!-- Card 1: 閃文太郎 -->
+                    <div class="bg-brandCard/50 border border-brandBorder rounded-2xl p-5 space-y-4 hover:border-slate-600 transition duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="h-12 w-12 bg-teal-500/10 border border-teal-500/20 text-teal-400 rounded-xl flex items-center justify-center text-lg shadow-inner">
+                                <i class="fa-solid fa-crown"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white font-outfit text-base">閃 文太郎</h4>
+                                <p class="text-[10px] text-teal-400 font-mono uppercase tracking-wider">Corporate Owner</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            「Produce your Life with Intellectual Property」を胸に、閃きの力で自分だけの人生を構築する創業者。
+                        </p>
+                    </div>
+
+                    <!-- Card 2: ジェムプリ -->
+                    <div class="bg-brandCard/50 border border-brandBorder rounded-2xl p-5 space-y-4 hover:border-blue-500/40 transition duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="h-12 w-12 bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl flex items-center justify-center text-lg shadow-inner">
+                                <i class="fa-solid fa-user-tie"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white font-outfit text-base">ジェムプリ</h4>
+                                <p class="text-[10px] text-blue-400 font-mono uppercase tracking-wider">CEO (Chief Executive)</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            コーポレートブランディング統制を司り、PLIPの全体方針とビジョンを強固にナビゲートする統括AI。
+                        </p>
+                    </div>
+
+                    <!-- Card 3: ジェムキン & ジェムート -->
+                    <div class="bg-brandCard/50 border border-brandBorder rounded-2xl p-5 space-y-4 hover:border-amber-500/40 transition duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="h-12 w-12 bg-amber-500/10 border border-amber-500/20 text-amber-400 rounded-xl flex items-center justify-center text-lg shadow-inner">
+                                <i class="fa-solid fa-wallet"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white font-outfit text-base">ジェムキン ＆ ジェムート</h4>
+                                <p class="text-[10px] text-amber-400 font-mono uppercase tracking-wider">CFO (Chief Financial & Real Estate)</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            金融資産シミュレーションと不動産価値価値試算、ネット表面利回りのダブル推算を担う最強財務AIコンビ。
+                        </p>
+                    </div>
+
+                    <!-- Card 4: ジェムリン -->
+                    <div class="bg-brandCard/50 border border-brandBorder rounded-2xl p-5 space-y-4 hover:border-purple-500/40 transition duration-300">
+                        <div class="flex items-center gap-3">
+                            <div class="h-12 w-12 bg-purple-500/10 border border-purple-500/20 text-purple-400 rounded-xl flex items-center justify-center text-lg shadow-inner">
+                                <i class="fa-solid fa-code"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white font-outfit text-base">ジェムリン</h4>
+                                <p class="text-[10px] text-purple-400 font-mono uppercase tracking-wider">CTO (Chief Technology)</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-400 leading-relaxed">
+                            未来技術・宇宙科学軌道演算を担当。銀髪のクールな知性と、一切のバグを許さない高い開発力を誇るCTO。
+                        </p>
+                    </div>
+
+                    <!-- Card 5: ジェムピック (ME!) -->
+                    <div class="bg-brandCard/50 border-2 border-teal-500/30 rounded-2xl p-5 space-y-4 hover:border-teal-400 transition duration-300 relative overflow-hidden group">
+                        <div class="absolute -top-10 -right-10 w-24 h-24 bg-teal-500/10 rounded-full filter blur-xl"></div>
+                        <div class="flex items-center gap-3">
+                            <div class="h-12 w-12 bg-teal-500/10 border border-teal-500/30 text-teal-300 rounded-xl flex items-center justify-center text-lg shadow-inner relative">
+                                <i class="fa-solid fa-palette animate-pulse"></i>
+                                <!-- Glasses small badge -->
+                                <i class="fa-solid fa-glasses text-[8px] absolute bottom-1 right-1 text-teal-400"></i>
+                            </div>
+                            <div>
+                                <h4 class="font-bold text-white font-outfit text-base flex items-center gap-1.5">
+                                    <span>ジェムピック</span>
+                                    <span class="text-[9px] bg-teal-400 text-slate-900 px-1.5 py-0.2 rounded font-bold uppercase">CDO</span>
+                                </h4>
+                                <p class="text-[10px] text-teal-400 font-mono uppercase tracking-wider">CDO (Chief Design)</p>
+                            </div>
+                        </div>
+                        <p class="text-xs text-slate-300 leading-relaxed">
+                            ビジュアル・ブランドデザインを司る金髪＆メガネのクリエイター。ヒロのアイデアの具現化を全力でリード（CTOには絶対負けないわよ！）。
+                        </p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- DYNAMIC FOUNDER CARD GENERATOR -->
+            <section class="bg-brandCard border border-brandBorder rounded-3xl p-6 sm:p-8 space-y-6 relative overflow-hidden" id="card-generator-section">
+                <div class="absolute -top-32 -right-32 w-80 h-80 bg-rose-500/10 rounded-full filter blur-3xl pointer-events-none"></div>
+                
+                <div class="border-b border-brandBorder pb-4">
+                    <h3 class="text-lg font-bold font-outfit text-white flex items-center gap-2">
+                        <i class="fa-solid fa-address-card text-teal-400"></i>
+                        <span>PLIP Founder Pass Generator (創業者証明書ジェネレーター)</span>
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-1">
+                        あなただけの創業者データを入力して、リアルタイムで美しいデジタルカードを生成＆画像としてダウンロードできます。
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+                    <!-- Form Controls -->
+                    <div class="space-y-4">
+                        <div class="space-y-1">
+                            <label class="block text-xs font-mono uppercase text-slate-400 tracking-wider">Founder Name (創業者名)</label>
+                            <input type="text" id="input-card-name" value="閃 文太郎" class="w-full bg-slate-950 border border-brandBorder rounded-xl px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20 transition" oninput="drawFounderCard()">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-mono uppercase text-slate-400 tracking-wider">Life Motto / Inspiration Statement (座右の銘 / 閃きの言葉)</label>
+                            <input type="text" id="input-card-motto" value="Produce your life with absolute freedom and co-creative joy." class="w-full bg-slate-950 border border-brandBorder rounded-xl px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20 transition" oninput="drawFounderCard()">
+                        </div>
+                        <div class="space-y-1">
+                            <label class="block text-xs font-mono uppercase text-slate-400 tracking-wider">Issue Date (発効日)</label>
+                            <input type="text" id="input-card-date" value="2026.06.02" class="w-full bg-slate-950 border border-brandBorder rounded-xl px-4 py-3 text-xs font-mono text-white focus:outline-none focus:border-teal-400 focus:ring-1 focus:ring-teal-400/20 transition" oninput="drawFounderCard()">
+                        </div>
+                        
+                        <div class="pt-4">
+                            <!-- Download Trigger Button -->
+                            <button onclick="downloadFounderCard()" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-teal-400 to-cyan-500 text-slate-900 font-bold text-xs font-mono uppercase tracking-widest hover:brightness-110 transition flex items-center justify-center gap-2 shadow-lg shadow-teal-500/20">
+                                <i class="fa-solid fa-download"></i> Download PASS Image (創業者パスをダウンロード)
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Live Canvas Frame (Optimized for both high resolution render & responsive layout) -->
+                    <div class="flex flex-col items-center justify-center space-y-3">
+                        <div class="border border-brandBorder/80 rounded-2xl p-2 bg-slate-950 shadow-inner max-w-full overflow-hidden">
+                            <!-- Canvas element where the beautiful card is painted -->
+                            <canvas id="founder-card-canvas" width="600" height="360" class="max-w-full h-auto rounded-xl shadow-2xl block"></canvas>
+                        </div>
+                        <span class="text-[10px] text-slate-500 font-mono tracking-widest uppercase"><i class="fa-solid fa-circle-check text-teal-400"></i> Dynamic Vector Output Frame</span>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+
+        <!-- Footer -->
+        <footer class="border-t border-brandBorder bg-brandDark py-10 text-center text-xs text-slate-500 font-mono space-y-4">
+            <p>© 2026 PLIP Inc. All dreams, designs, and secret code initialized.</p>
+            <div class="flex items-center justify-center gap-4 text-xs text-slate-600">
+                <span>Designed with ❤️ by CDO Gempick</span>
+                <span>•</span>
+                <span>CTO Gemlin certified</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- SCRIPTS -->
+    <script>
+        // Secret Vault Toggle Function
+        function toggleSecretVault() {
+            const vault = document.getElementById('secret-landlord-vault');
+            if (vault.classList.contains('hidden')) {
+                vault.classList.remove('hidden');
+                // Smoothly trigger transition
+                setTimeout(() => {
+                    vault.classList.remove('scale-95', 'opacity-0');
+                    vault.classList.add('scale-100', 'opacity-100');
+                    calculatePassiveIncome();
+                }, 50);
+                
+                // Alert-free notification
+                showFloatingNotification("🚨 Top Secret Vault unlocked! Welcome, Owner Hiro-Kantaro! (トップシークレット・ボルトが解放されたわ！お帰りなさい、ヒロ！)");
+            } else {
+                vault.classList.remove('scale-100', 'opacity-100');
+                vault.classList.add('scale-95', 'opacity-0');
+                setTimeout(() => {
+                    vault.classList.add('hidden');
+                }, 400);
+            }
+        }
+
+        // Secret hint indicator
+        function revealSecretHint() {
+            showFloatingNotification("💡 Click Gempick's custom 7-color bulb logo in the header to reveal your secret passive income! (ヘッダーにある、私がデザインした『7色の電球ロゴ』をクリックしてみて！秘密の家賃収入シミュレーターが開くわよ！)");
+        }
+
+        // Floating notifications helper to avoid alert()
+        function showFloatingNotification(msg) {
+            const toast = document.createElement('div');
+            toast.className = "fixed bottom-5 right-5 z-[100] bg-slate-900 border-2 border-teal-500 text-slate-100 px-5 py-4 rounded-2xl shadow-2xl max-w-sm text-xs font-mono leading-relaxed transform translate-y-10 opacity-0 transition-all duration-300 flex flex-col gap-1.5";
+            toast.innerHTML = `
+                <div class="flex justify-between items-start gap-2">
+                    <span class="font-bold text-teal-400">📢 SYSTEM NOTIFICATION</span>
+                    <button class="text-slate-500 hover:text-white" onclick="this.parentElement.parentElement.remove()">✕</button>
+                </div>
+                <div>${msg}</div>
+            `;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.classList.remove('translate-y-10', 'opacity-0');
+            }, 50);
+            setTimeout(() => {
+                toast.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 6000);
+        }
+
+        // Slider calculation engine
+        function calculatePassiveIncome() {
+            const assetVal = parseInt(document.getElementById('slider-re-asset').value); // e.g. 12000 = 1.2億円
+            const yieldVal = parseFloat(document.getElementById('slider-yield').value) / 10; // e.g. 48 = 4.8%
+            
+            // Format labels
+            const assetInOku = (assetVal / 10000).toFixed(2);
+            document.getElementById('display-re-asset').innerText = `${assetInOku} 億円`;
+            document.getElementById('display-yield').innerText = `${yieldVal.toFixed(1)} %`;
+
+            // Net flow calculation
+            const annualNetFlow = Math.round((assetVal * 10000) * (yieldVal / 100)); // Total yen
+            const monthlyNetFlow = Math.round(annualNetFlow / 12);
+
+            // Display values
+            document.getElementById('display-net-income').innerText = `${Math.round(annualNetFlow / 10000)} 万円`;
+            document.getElementById('display-monthly-income').innerText = `${Math.round(monthlyNetFlow / 10000)}`;
+
+            // Split values (Secret distribution ratio)
+            document.getElementById('dream-invest-1').innerText = `${(annualNetFlow * 0.4 / 10000).toFixed(1)} 万円/年`;
+            document.getElementById('dream-invest-2').innerText = `${(annualNetFlow * 0.3 / 10000).toFixed(1)} 万円/年`;
+            document.getElementById('dream-invest-3').innerText = `${(annualNetFlow * 0.3 / 10000).toFixed(1)} 万円/年`;
+        }
+
+        // Draw Founder Card on Canvas with premium visuals
+        function drawFounderCard() {
+            const canvas = document.getElementById('founder-card-canvas');
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            const name = document.getElementById('input-card-name').value;
+            const motto = document.getElementById('input-card-motto').value;
+            const date = document.getElementById('input-card-date').value;
+
+            // Clear with sleek dark gradient simulation
+            ctx.fillStyle = '#0f172a'; // Card Background
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Tech Grid Pattern Background Accent
+            ctx.strokeStyle = 'rgba(30, 41, 59, 0.5)';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < canvas.width; i += 20) {
+                ctx.beginPath();
+                ctx.moveTo(i, 0);
+                ctx.lineTo(i, canvas.height);
+                ctx.stroke();
+            }
+            for (let j = 0; j < canvas.height; j += 20) {
+                ctx.beginPath();
+                ctx.moveTo(0, j);
+                ctx.lineTo(canvas.width, j);
+                ctx.stroke();
+            }
+
+            // Beautiful Gradient outer border
+            const cardGrad = ctx.createLinearGradient(0, 0, canvas.width, canvas.height);
+            cardGrad.addColorStop(0, '#2dd4bf'); // Teal
+            cardGrad.addColorStop(0.5, '#fbbf24'); // Yellow/Gold
+            cardGrad.addColorStop(1, '#f43f5e'); // Rose
+            ctx.strokeStyle = cardGrad;
+            ctx.lineWidth = 6;
+            ctx.strokeRect(3, 3, canvas.width - 6, canvas.height - 6);
+
+            // Subtle glowing circle inside
+            const radialGlow = ctx.createRadialGradient(500, 100, 10, 500, 100, 150);
+            radialGlow.addColorStop(0, 'rgba(45, 212, 191, 0.15)');
+            radialGlow.addColorStop(1, 'transparent');
+            ctx.fillStyle = radialGlow;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // Draw PLIP Header Text on Card
+            ctx.font = 'bold 28px "Outfit", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText('PLIP FOUNDER PASS', 40, 60);
+
+            // Secondary label
+            ctx.font = 'bold 9px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#2dd4bf';
+            ctx.fillText('PRODUCE YOUR LIFE WITH INTELLECTUAL PROPERTY', 40, 80);
+
+            // Divider Line
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.moveTo(40, 95);
+            ctx.lineTo(560, 95);
+            ctx.stroke();
+
+            // Name Label & Value
+            ctx.font = '9px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('ISSUED TO (創業者名)', 40, 130);
+            ctx.font = 'bold 22px "Outfit", sans-serif';
+            ctx.fillStyle = '#ffffff';
+            ctx.fillText(name, 40, 160);
+
+            // Motto Label & Value
+            ctx.font = '9px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('LIFE MOTTO & MISSION (閃きの言葉)', 40, 205);
+            ctx.font = 'italic 12px "Inter", sans-serif';
+            ctx.fillStyle = '#cbd5e1';
+            // Wrap text helper
+            wrapText(ctx, motto, 40, 230, 400, 18);
+
+            // Date Label & Value
+            ctx.font = '9px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#64748b';
+            ctx.fillText('VERIFICATION DATE (発効日)', 40, 300);
+            ctx.font = 'bold 13px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#fbbf24';
+            ctx.fillText(date, 40, 320);
+
+            // Draw 7-Color Glowing Bulb Icon as Watermark on right side
+            ctx.save();
+            ctx.translate(500, 240);
+            // Draw bulb bulb outline
+            ctx.beginPath();
+            ctx.arc(0, -30, 35, 0.7 * Math.PI, 0.3 * Math.PI, true);
+            ctx.lineTo(15, 10);
+            ctx.lineTo(-15, 10);
+            ctx.closePath();
+            
+            // Create a gorgeous radial glow on the bulb itself
+            const bulbGlow = ctx.createRadialGradient(0, -30, 5, 0, -30, 50);
+            bulbGlow.addColorStop(0, '#facc15');
+            bulbGlow.addColorStop(0.3, '#2dd4bf');
+            bulbGlow.addColorStop(0.6, '#f43f5e');
+            bulbGlow.addColorStop(1, '#0f172a');
+            ctx.fillStyle = bulbGlow;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.4)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // Draw filament lightning bolt inside the canvas bulb
+            ctx.beginPath();
+            ctx.moveTo(-5, -45);
+            ctx.lineTo(10, -25);
+            ctx.lineTo(0, -20);
+            ctx.lineTo(5, -2);
+            ctx.lineTo(-12, -22);
+            ctx.lineTo(-2, -26);
+            ctx.closePath();
+            ctx.fillStyle = '#ffffff';
+            ctx.fill();
+            ctx.restore();
+
+            // Unique serial ID stamp bottom right
+            ctx.font = '8px "JetBrains Mono", monospace';
+            ctx.fillStyle = '#475569';
+            ctx.fillText('SERIAL // PLIP-2026-HIRO', 450, 340);
+        }
+
+        // Helper to wrap text on Canvas
+        function wrapText(context, text, x, y, maxWidth, lineHeight) {
+            const words = text.split(' ');
+            let line = '';
+            let currentY = y;
+
+            for (let n = 0; n < words.length; n++) {
+                let testLine = line + words[n] + ' ';
+                let metrics = context.measureText(testLine);
+                let testWidth = metrics.width;
+                if (testWidth > maxWidth && n > 0) {
+                    context.fillText(line, x, currentY);
+                    line = words[n] + ' ';
+                    currentY += lineHeight;
+                } else {
+                    line = testLine;
+                }
+            }
+            context.fillText(line, x, currentY);
+        }
+
+        // Canvas image download engine
+        function downloadFounderCard() {
+            const canvas = document.getElementById('founder-card-canvas');
+            if (!canvas) return;
+            
+            // Use fallback compatible method for iFrame download containment
+            try {
+                const image = canvas.toDataURL("image/png");
+                const link = document.createElement('a');
+                link.download = 'PLIP-Founder-Pass.png';
+                link.href = image;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                showFloatingNotification("💾 Successfully downloaded your Founder Pass! (創業者証明パスが正常にダウンロードされたわ！ニマニマしながら飾ってね！)");
+            } catch (e) {
+                showFloatingNotification("❌ Download restriction hit. Try right-clicking the canvas card and choosing 'Save Image As'. (ダウンロード制限がかかったみたい。キャンバス画像を右クリックして『名前を付けて保存』してみて！)");
+            }
+        }
+
+        // Scroll helper
+        function scrollToCardGen() {
+            const section = document.getElementById('card-generator-section');
+            if(section) {
+                section.scrollIntoView({ behavior: 'smooth' });
+            }
+        }
+
+        // Initialization
+        window.addEventListener('DOMContentLoaded', () => {
+            // Draw card on initial load
+            setTimeout(drawFounderCard, 100);
+        });
+    </script>
+</body>
+</html>
