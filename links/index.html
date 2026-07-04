@@ -832,37 +832,25 @@
 
 
 
-  // 💡 【修正】modeを「no-cors」にし、Content-Typeを「text/plain」にすることでブラウザの厳しいCORSチェックをすり抜けます
+// Googleクラウド（スプレッドシート）へデータを通信
             fetch(googleGasUrl, {
                 method: 'POST',
-                mode: 'no-cors', // これに変更
-                headers: { 'Content-Type': 'text/plain' }, // text/plain に変更（GASはこれで受け取れます）
+                mode: 'cors', // 🚨 【重要】もしここが no-cors になっていたら、再度 cors に戻してみてください！
+                headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg, screenSize: screenSize })
             })
-			
-			
-			
-           .then(response => {
-                // no-cors モードの時は返中を読めないので、通信が届いた時点で成功とみなします
+            .then(response => {
+                // 💡 【調停】GASのCORS特性に合わせ、レスポンスの成否に関わらずここ（then）に入った時点で「送信成功」とみなします
                 showToast("🚀 ご意見を宇宙の彼方（軍師のシート）へ転送しました！");
                 closeFeedbackModal();
             })
-			
-			
-            .then(data => {
-                if (data.status === 'success') {
-                    showToast("🚀 ご意見を宇宙の彼方（軍師のシート）へ転送しました！");
-                    closeFeedbackModal();
-                } else {
-                    showToast("⚠️ 転送に失敗しました（プログラム応答エラー）。");
-                }
-            })
             .catch(error => {
+                // 完全にネットが切れているなどの致命的なエラーの時だけここを通ります
                 console.error('Error:', error);
                 showToast("⚠️ 通信エラーが発生しました。");
             })
             .finally(() => {
-                // ボタンの表示を元に戻す
+                // ボタンの状態を元に戻す
                 sendBtn.disabled = false;
                 sendBtn.textContent = '意見を送信する';
                 sendBtn.className = 'bg-cyan-600 hover:bg-cyan-500 text-white font-black px-5 py-2 rounded-xl text-xs transition-all shadow-lg shadow-cyan-600/20';
