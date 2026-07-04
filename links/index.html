@@ -830,14 +830,25 @@
             // 🚨 コピーしたウェブアプリURLをここにシングルクォーテーション（'）で挟んで貼り付けてください
             const googleGasUrl = 'https://script.google.com/macros/s/AKfycbyfeSVzcBb8BeZgzXwFgN5iA8iFautRGB3R4TYYGzfBSZXW3HoGqJpss-P2TbCzOcVsSQ/exec';
 
-            // Googleクラウド（スプレッドシート）へデータを通信
+
+
+  // 💡 【修正】modeを「no-cors」にし、Content-Typeを「text/plain」にすることでブラウザの厳しいCORSチェックをすり抜けます
             fetch(googleGasUrl, {
                 method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors', // これに変更
+                headers: { 'Content-Type': 'text/plain' }, // text/plain に変更（GASはこれで受け取れます）
                 body: JSON.stringify({ message: msg, screenSize: screenSize })
             })
-            .then(response => response.json())
+			
+			
+			
+           .then(response => {
+                // no-cors モードの時は返中を読めないので、通信が届いた時点で成功とみなします
+                showToast("🚀 ご意見を宇宙の彼方（軍師のシート）へ転送しました！");
+                closeFeedbackModal();
+            })
+			
+			
             .then(data => {
                 if (data.status === 'success') {
                     showToast("🚀 ご意見を宇宙の彼方（軍師のシート）へ転送しました！");
