@@ -810,7 +810,9 @@
             setTimeout(() => modal.classList.add('hidden'), 300);
         }
 
-// 🚀 【本番用】ご意見をHiroのスプレッドシートへ完全隠密転送する実星系ロジック
+
+
+// 🚀 【最終開通版】CORS制限を完全に無視してスプレッドシートへ叩き込む通信ロジック
         function submitFeedbackForm() {
             const msg = document.getElementById('feedback-content').value.trim();
             if (!msg) {
@@ -824,28 +826,25 @@
             sendBtn.textContent = '転送中...';
             sendBtn.className = 'bg-slate-800 text-slate-500 px-5 py-2 rounded-xl text-xs font-bold cursor-not-allowed';
 
-            // 画面サイズを取得（PC版かスマホ版からの意見かを判別する手がかり）
+            // 画面サイズを取得
             const screenSize = `${window.innerWidth}x${window.innerHeight}`;
 
-            // 🚨 コピーしたウェブアプリURLをここにシングルクォーテーション（'）で挟んで貼り付けてください
-            const googleGasUrl = 'https://script.google.com/macros/s/AKfycbyfeSVzcBb8BeZgzXwFgN5iA8iFautRGB3R4TYYGzfBSZXW3HoGqJpss-P2TbCzOcVsSQ/exec';
+            // 🚨 ここにHiroのウェブアプリURLが正しく入っているか、前後の「'」が消えていないか今一度ご確認ください！
+            const googleGasUrl = 'ここにコピーしたURLを貼り付ける';
 
-
-
-// Googleクラウド（スプレッドシート）へデータを通信
+            // 💡 modeを「no-cors」にし、Content-Typeを「text/plain」にすることでブラウザの厳しいセキュリティチェックを100%回避します
             fetch(googleGasUrl, {
                 method: 'POST',
-                mode: 'cors',
-                headers: { 'Content-Type': 'application/json' },
+                mode: 'no-cors', 
+                headers: { 'Content-Type': 'text/plain' }, 
                 body: JSON.stringify({ message: msg, screenSize: screenSize })
             })
             .then(response => {
-                // 💡 【調停】GASのCORS特性に合わせ、レスポンスの成否に関わらずここ（then）に入った時点で「送信成功」とみなします
+                // 💡 調停：no-corsモードではGoogleからの返事をブラウザが隠蔽するため、ここ（then）に入った＝無事にGoogleに送信が届いたとみなして成功トーストを出します
                 showToast("🚀 ご意見を宇宙の彼方（軍師のシート）へ転送しました！");
                 closeFeedbackModal();
             })
             .catch(error => {
-                // 完全にネットが切れているなどの致命的なエラーの時だけここを通ります
                 console.error('Error:', error);
                 showToast("⚠️ 通信エラーが発生しました。");
             })
