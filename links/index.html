@@ -100,7 +100,7 @@
                 <div class="w-full flex justify-end mt-4 px-2">
                     <button id="feedback-trigger-btn" onclick="openFeedbackModal();" class="text-[11px] sm:text-xs text-slate-500 hover:text-cyan-400 bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-cyan-500/30 px-3 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 tracking-wider select-none font-medium">
                         <i class="fa-solid fa-comment-dots text-slate-600 group-hover:text-cyan-400"></i>
-                        <span>開発者へご意見・感想</span>
+                        <span>開発者へのご意見・感想</span>
                     </button>
                 </div>
             </h1>
@@ -835,7 +835,7 @@
 // Googleクラウド（スプレッドシート）へデータを通信
             fetch(googleGasUrl, {
                 method: 'POST',
-                mode: 'cors', // 🚨 【重要】もしここが no-cors になっていたら、再度 cors に戻してみてください！
+                mode: 'cors',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ message: msg, screenSize: screenSize })
             })
@@ -857,17 +857,13 @@
             });
         }
 
-        // 📱 【ルール厳守】モーダルの外側（暗い背景）をタップした時にもポップアップを閉じる処理
+        // 📱 【ルール厳守】モーダルの外側（暗い背景）をタップした時にもポップアップを閉じる処理[cite: 4]
         document.addEventListener('click', (event) => {
             const modal = document.getElementById('feedback-modal');
             if (modal && !modal.classList.contains('hidden') && event.target === modal) {
                 closeFeedbackModal();
             }
         });
-		
-		
-		
-		
     </script>
 
 <iframe src="https://hiro-seki-tech.github.io/orbit-simulator/music/BGM.html" allow="autoplay" style="display: none;"></iframe></body></html>
