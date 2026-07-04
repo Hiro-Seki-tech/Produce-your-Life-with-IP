@@ -100,7 +100,7 @@
                 <div class="w-full flex justify-end mt-4 px-2">
                     <button id="feedback-trigger-btn" onclick="openFeedbackModal();" class="text-[11px] sm:text-xs text-slate-500 hover:text-cyan-400 bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-cyan-500/30 px-3 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 tracking-wider select-none font-medium">
                         <i class="fa-solid fa-comment-dots text-slate-600 group-hover:text-cyan-400"></i>
-                        <span>開発者へのご意見・感想</span>
+                        <span>作品へのご意見・感想</span>
                     </button>
                 </div>
             </h1>
@@ -171,7 +171,6 @@
 
 
 
-    <!-- カード追加モーダル -->
     
 
     <!-- カテゴリモーダル -->
@@ -830,7 +829,7 @@
             const screenSize = `${window.innerWidth}x${window.innerHeight}`;
 
             // 🚨 ここにHiroのウェブアプリURLが正しく入っているか、前後の「'」が消えていないか今一度ご確認ください！
-            const googleGasUrl = 'ここにコピーしたURLを貼り付ける';
+            const googleGasUrl = 'https://script.google.com/macros/s/AKfycbyfeSVzcBb8BeZgzXwFgN5iA8iFautRGB3R4TYYGzfBSZXW3HoGqJpss-P2TbCzOcVsSQ/exec';
 
             // 💡 modeを「no-cors」にし、Content-Typeを「text/plain」にすることでブラウザの厳しいセキュリティチェックを100%回避します
             fetch(googleGasUrl, {
@@ -846,7 +845,7 @@
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast("🚀　お疲れさまでした。。");
+                showToast("🚀　お疲れさまでした。");
             })
             .finally(() => {
                 // ボタンの状態を元に戻す
