@@ -88,12 +88,21 @@
                         PLIP's LINK
                     </span>
                 </div>
+<!-- 💡 【差分コード：ヘッダー表記の直下にさりげなくボタンを結合（置換）】 -->
                 <span class="text-xs sm:text-sm tracking-[0.25em] text-slate-400 font-light mt-1 uppercase" style="font-family: 'Cinzel', serif;">
                     <span class="text-amber-400 font-black text-lg">P</span>roduce your 
                     <span class="text-amber-400 font-black text-lg">L</span>ife with 
                     <span class="text-amber-400 font-black text-lg">I</span>ntellectual 
                     <span class="text-amber-400 font-black text-lg">P</span>roperty
                 </span>
+                
+                <!-- さりげないご意見箱ボタン（ヘッダーの一番右下に配置） -->
+                <div class="w-full flex justify-end mt-4 px-2">
+                    <button id="feedback-trigger-btn" onclick="openFeedbackModal();" class="text-[11px] sm:text-xs text-slate-500 hover:text-cyan-400 bg-slate-900/40 hover:bg-slate-900 border border-slate-800/80 hover:border-cyan-500/30 px-3 py-1.5 rounded-xl transition-all shadow-sm flex items-center gap-1.5 tracking-wider select-none font-medium">
+                        <i class="fa-solid fa-comment-dots text-slate-600 group-hover:text-cyan-400"></i>
+                        <span>開発者へご意見・感想</span>
+                    </button>
+                </div>
             </h1>
         </div>
     </header>
@@ -120,6 +129,47 @@
             <p class="text-[10px] md:text-right font-light">© 2026 PLIP &amp; Hiro-Seki-Tech. All rights reserved.</p>
         </div>
     </footer>
+
+<!-- 💡 【差分コード：最前面 z-[250] を保証したご意見モーダルHTML（新規挿入）】 -->
+    <div id="feedback-modal" class="fixed inset-0 z-[250] flex items-center justify-center bg-black/70 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300">
+        <div id="feedback-modal-content" class="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-md w-11/12 mx-auto shadow-[0_15px_40px_rgba(0,0,0,0.6)] transform scale-95 transition-transform duration-300 relative text-slate-100">
+            
+            <!-- 閉じる（×）ボタン -->
+            <button onclick="closeFeedbackModal()" class="absolute top-4 right-4 text-slate-500 hover:text-white transition-colors text-xl">
+                <i class="fas fa-times"></i>
+            </button>
+
+            <!-- タイトル -->
+            <div class="flex items-center gap-2 border-b border-slate-800 pb-2 mb-4">
+                <span class="text-cyan-400 text-lg"><i class="fa-solid fa-comment-dots"></i></span>
+                <h3 class="text-base font-bold tracking-wider text-cyan-400" style="font-family: 'Noto Sans JP', sans-serif;">PLIP総合・ご意見感想箱</h3>
+            </div>
+
+            <p class="text-[11px] text-slate-400 mb-4 leading-relaxed">
+                シミュレータ群へのご要望、バグ報告、応援メッセージなど、何でも自由にお書き込みください。軍師が気が向いた時にひっそりと拝見します。
+            </p>
+
+            <!-- 入力フィールド -->
+            <div class="space-y-4">
+                <div>
+                    <label for="feedback-content" class="block text-[10px] font-semibold text-slate-500 mb-1.5 uppercase tracking-wider">メッセージ（必須）</label>
+                    <textarea id="feedback-content" rows="5" placeholder="ここにメッセージを入力してください..." class="w-full rounded-xl border border-slate-800 bg-slate-950 p-3 text-slate-100 placeholder-slate-700 focus:ring-2 focus:ring-cyan-600 focus:outline-none text-xs resize-none custom-scrollbar"></textarea>
+                </div>
+            </div>
+
+            <!-- 下部ボタンエリア -->
+            <div class="mt-5 flex items-center justify-end gap-2">
+                <button onclick="closeFeedbackModal()" class="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-750 text-slate-400 text-xs font-semibold transition-all">
+                    キャンセル
+                </button>
+                <button id="send-feedback-btn" onclick="submitFeedbackForm();" class="bg-cyan-600 hover:bg-cyan-500 text-white font-black px-5 py-2 rounded-xl text-xs transition-all shadow-lg shadow-cyan-600/20">
+                    意見を送信する
+                </button>
+            </div>
+        </div>
+    </div>
+
+
 
     <!-- カード追加モーダル -->
     
@@ -731,6 +781,94 @@
                 showToast(`🤫 ミュート状態 (赤枠)`);
             }
         }
+		
+		// 💡 【ここに3つ目の差分コードを挿入】ご意見モーダルの開閉・外側クリックで閉じるJavaScript
+
+        // ご意見モーダルを開く
+        function openFeedbackModal() {
+            playMechanicalClick();
+            const modal = document.getElementById('feedback-modal');
+            const content = document.getElementById('feedback-modal-content');
+            document.getElementById('feedback-content').value = ''; // フォーム初期化
+            
+            modal.classList.remove('hidden');
+            setTimeout(() => {
+                modal.classList.remove('opacity-0');
+                content.classList.remove('scale-95');
+                content.classList.add('scale-100');
+            }, 10);
+        }
+
+        // ご意見モーダルを閉じる
+        function closeFeedbackModal() {
+            const modal = document.getElementById('feedback-modal');
+            const content = document.getElementById('feedback-modal-content');
+            
+            modal.classList.add('opacity-0');
+            content.classList.remove('scale-100');
+            content.classList.add('scale-95');
+            setTimeout(() => modal.classList.add('hidden'), 300);
+        }
+
+// 🚀 【本番用】ご意見をHiroのスプレッドシートへ完全隠密転送する実星系ロジック
+        function submitFeedbackForm() {
+            const msg = document.getElementById('feedback-content').value.trim();
+            if (!msg) {
+                showToast('メッセージ内容が空です。');
+                return;
+            }
+
+            // 送信ボタンの連打を防ぐため一時的にロック
+            const sendBtn = document.getElementById('send-feedback-btn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = '転送中...';
+            sendBtn.className = 'bg-slate-800 text-slate-500 px-5 py-2 rounded-xl text-xs font-bold cursor-not-allowed';
+
+            // 画面サイズを取得（PC版かスマホ版からの意見かを判別する手がかり）
+            const screenSize = `${window.innerWidth}x${window.innerHeight}`;
+
+            // 🚨 コピーしたウェブアプリURLをここにシングルクォーテーション（'）で挟んで貼り付けてください
+            const googleGasUrl = 'https://script.google.com/macros/s/AKfycbyfeSVzcBb8BeZgzXwFgN5iA8iFautRGB3R4TYYGzfBSZXW3HoGqJpss-P2TbCzOcVsSQ/exec';
+
+            // Googleクラウド（スプレッドシート）へデータを通信
+            fetch(googleGasUrl, {
+                method: 'POST',
+                mode: 'cors',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: msg, screenSize: screenSize })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast("🚀 ご意見を宇宙の彼方（軍師のシート）へ転送しました！");
+                    closeFeedbackModal();
+                } else {
+                    showToast("⚠️ 転送に失敗しました（プログラム応答エラー）。");
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast("⚠️ 通信エラーが発生しました。");
+            })
+            .finally(() => {
+                // ボタンの表示を元に戻す
+                sendBtn.disabled = false;
+                sendBtn.textContent = '意見を送信する';
+                sendBtn.className = 'bg-cyan-600 hover:bg-cyan-500 text-white font-black px-5 py-2 rounded-xl text-xs transition-all shadow-lg shadow-cyan-600/20';
+            });
+        }
+
+        // 📱 【ルール厳守】モーダルの外側（暗い背景）をタップした時にもポップアップを閉じる処理
+        document.addEventListener('click', (event) => {
+            const modal = document.getElementById('feedback-modal');
+            if (modal && !modal.classList.contains('hidden') && event.target === modal) {
+                closeFeedbackModal();
+            }
+        });
+		
+		
+		
+		
     </script>
 
 <iframe src="https://hiro-seki-tech.github.io/orbit-simulator/music/BGM.html" allow="autoplay" style="display: none;"></iframe></body></html>
