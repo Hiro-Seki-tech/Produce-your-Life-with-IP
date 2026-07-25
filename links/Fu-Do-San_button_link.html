@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLIP 3段階連動ボタン v5</title>
+<style>
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: #f8fafc;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Yu Gothic UI", "Meiryo", sans-serif;
+}
+.plip-wrap {
+  position: relative;
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+  aspect-ratio: 1 / 1;
+  user-select: none;
+}
+#plip-core-button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid #FFD700;
+  border-radius: 18px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #475569, #1e293b, #0f172a);
+  box-shadow: 0 0 28px #FFD70055, 0 18px 45px rgba(0,0,0,.5);
+  transition: border-color .2s, box-shadow .2s;
+  touch-action: manipulation;
+}
+#plip-stage, #plip-stage > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.plip-bubble {
+  display: none;
+  position: absolute;
+  top: calc(100% - 5px);
+  left: 0;
+  width: 100%;
+  z-index: 50;
+  padding: 0 1px;
+  pointer-events: none;
+}
+.plip-bubble svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+@keyframes plipNobleFloatSVG {
+  0%, 100% { transform: translate3d(0,0,0) rotate(.001deg); }
+  50% { transform: translate3d(0,2px,0) rotate(.001deg); }
+}
+@keyframes plipRainbowTextSVG {
+  0% { fill: #ff0055; filter: drop-shadow(0 0 3px rgba(255,0,85,.5)); }
+  14% { fill: #ff5500; }
+  28% { fill: #ffcc00; }
+  42% { fill: #00ff66; }
+  56% { fill: #00ccff; }
+  70% { fill: #3333ff; }
+  84% { fill: #9900ff; }
+  100% { fill: #ff0055; filter: drop-shadow(0 0 3px rgba(255,0,85,.5)); }
+}
+@keyframes plipBoltFlashSVG {
+  0%, 100% { opacity: .85; filter: drop-shadow(0 0 1px #fde047); }
+  50% { opacity: 1; filter: drop-shadow(0 0 5px #fde047); }
+}
+.animated-bubble-container-svg {
+  animation: plipNobleFloatSVG 3s infinite ease-in-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.rainbow-bulb-svg { animation: plipRainbowTextSVG 7s linear infinite; }
+.flashing-bolt-svg { animation: plipBoltFlashSVG 1.5s infinite ease-in-out; }
+.effect-press { animation: effectPress .26s ease-out; }
+.effect-pulse { animation: effectPulse .42s ease-out; }
+.effect-glow { animation: effectGlow .55s ease-out; }
+.effect-shake { animation: effectShake .42s ease-out; }
+.effect-flash { animation: effectFlash .42s ease-out; }
+@keyframes effectPress {
+  0% { transform: scale(1) translateY(0); }
+  45% { transform: scale(.94) translateY(8px); filter: brightness(1.25); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes effectPulse {
+  0% { transform: scale(1); }
+  42% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes effectGlow {
+  0% { filter: brightness(1); }
+  45% { filter: brightness(1.8) saturate(1.35); }
+  100% { filter: brightness(1); }
+}
+@keyframes effectShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px) rotate(-1deg); }
+  40% { transform: translateX(9px) rotate(1deg); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(4px); }
+}
+@keyframes effectFlash {
+  0% { opacity: 1; }
+  35% { opacity: .18; filter: brightness(2.5); }
+  100% { opacity: 1; }
+}
+#plip-toast {
+  display: none;
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1000;
+  max-width: min(390px, calc(100vw - 36px));
+  padding: 12px 15px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #f8fafc;
+  box-shadow: 0 14px 35px rgba(0,0,0,.45);
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+  transition: .25s;
+  font-size: 14px;
+}
+#plip-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+<div class="plip-wrap">
+  <button id="plip-core-button" type="button" aria-label="PLIP 3段階連動ボタン">
+    <span id="plip-stage"></span>
+  </button>
+  <div class="plip-bubble" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 35">
+            <g class="animated-bubble-container-svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+              <path d="M 6 8 H 42 L 48 3 L 54 8 H 90 A 4 4 0 0 1 94 12 V 29 A 4 4 0 0 1 90 33 H 6 A 4 4 0 0 1 2 29 V 12 A 4 4 0 0 1 6 8 Z" fill="#151d30" stroke="#f59e0b" stroke-width="1.2" stroke-opacity="0.85" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.4))"></path>
+              <g transform="translate(6, 11) scale(0.85)">
+                <g stroke="#fbbf24" stroke-linecap="round" stroke-width="1.2" opacity="0.55">
+                  <line x1="8" y1="1" x2="8" y2="3"></line>
+                  <line x1="3" y1="3" x2="4.5" y2="4.5"></line>
+                  <line x1="1" y1="8" x2="3" y2="8"></line>
+                  <line x1="3" y1="13" x2="4.5" y2="11.5"></line>
+                  <line x1="13" y1="11.5" x2="11.5" y2="10"></line>
+                  <line x1="15" y1="8" x2="13" y2="8"></line>
+                  <line x1="13" y1="3" x2="11.5" y2="4.5"></line>
+                </g>
+                <path class="rainbow-bulb-svg" d="M8,2 C4.7,2 2,4.7 2,8 C2,10.1 3.1,11.2 4,12.1 C4.6,12.7 4.7,13.2 4.7,13.8 L11.3,13.8 C11.3,13.2 11.4,12.7 12,12.1 C12.9,11.2 14,10.1 14,8 C14,4.7 11.3,2 8,2 Z" fill="#94a3b8"></path>
+                <path d="M5.5,9.5 L7,6.5 L9,6.5 L10.5,9.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" style="filter:drop-shadow(0 0 1px #fff)"></path>
+                <path d="M4.7,13.8 H11.3 V15.5 C11.3,16 10.9,16.5 10.3,16.5 H5.7 C5.1,16.5 4.7,16 4.7,15.5 Z" fill="#94a3b8" stroke="#334155" stroke-width="0.5"></path>
+                <path d="M5.5,16.5 H10.5 V17.5 C10.5,18 10,18.5 9.5,18.5 H6.5 C6,18.5 5.5,18 5.5,17.5 Z" fill="#475569"></path>
+                <line x1="5" y1="14.8" x2="11" y2="14.8" stroke="#334155" stroke-width="0.8"></line>
+                <line x1="5.3" y1="15.8" x2="10.7" y2="15.8" stroke="#334155" stroke-width="0.8"></line>
+                <polygon class="flashing-bolt-svg" points="16,0.5 8,8.5 12,8.5 10,15.5 18,6.5 14,6.5" fill="#fde047"></polygon>
+              </g>
+              <text x="58" y="24" fill="#fbbf24" font-family="Arial,'Yu Gothic UI',Meiryo,sans-serif" font-size="11" font-weight="900" letter-spacing="0.03em" text-anchor="middle">PLIP !!</text>
+            </g>
+          </svg>
+        </div>
+</div>
+<div id="plip-toast" role="status"></div>
+<script>
+(() => {
+  const STATES = [{"svg":"\u003csvg style=\"width:100%;height:100%;display:block\" preserveAspectRatio=\"xMidYMid meet\"   viewBox=\"0 0 240 240\" xmlns=\"http://www.w3.org/2000/svg\">\n  \u003cdefs>\n    \u003clinearGradient id=\"skyGrad\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#11d4d1\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#3a506b\"/>\n    \u003c/linearGradient>\n    \u003clinearGradient id=\"fujiBlue\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#1e3a8a\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#1d4ed8\"/>\n    \u003c/linearGradient>\n    \u003clinearGradient id=\"snowGrad\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#ffffff\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#cbd5e1\"/>\n    \u003c/linearGradient>\n    \u003cfilter id=\"holoGlow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\">\n      \u003cfeGaussianBlur stdDeviation=\"2\" result=\"blur\" />\n      \u003cfeMerge>\n        \u003cfeMergeNode in=\"blur\"/>\n        \u003cfeMergeNode in=\"SourceGraphic\"/>\n      \u003c/feMerge>\n    \u003c/filter>\n  \u003c/defs>\n\n  \u003c!-- Ground Frame and Background Canvas -->\n  \u003crect width=\"240\" height=\"240\" rx=\"24\" fill=\"url(#skyGrad)\" stroke=\"#ffd900\" stroke-width=\"2\" />\n\n  \u003c!-- Celestial background effects -->\n  \u003cg fill=\"#fff\" opacity=\".28\">\u003cellipse cx=\"45\" cy=\"70\" rx=\"26\" ry=\"9\">\u003canimate attributeName=\"cx\" values=\"-20;260\" dur=\"30.00s\" repeatCount=\"indefinite\"/>\u003c/ellipse>\u003cellipse cx=\"190\" cy=\"95\" rx=\"32\" ry=\"11\">\u003canimate attributeName=\"cx\" values=\"260;-30\" dur=\"38.00s\" repeatCount=\"indefinite\"/>\u003c/ellipse>\u003c/g>\n\n  \u003c!-- Mt. Fuji towering to edges with majestic power -->\n  \u003cg>\n    \u003cpath d=\"M 5 215 Q 70 110 105 25 L 135 25 Q 170 110 235 215 Z\" fill=\"url(#fujiBlue)\" />\n    \u003cpath d=\"M 105 25 L 135 25 Q 144 60 131 70 L 123 62 L 118 75 L 113 64 L 106 69 Q 96 60 105 25 Z\" fill=\"url(#snowGrad)\" />\n  \u003c/g>\n\n  \u003c!-- Golden Horizon Ground Line -->\n  \u003crect x=\"10\" y=\"210\" width=\"220\" height=\"6\" rx=\"3\" fill=\"#ffd900\" />\n\n  \u003c!-- ==================== LEFT GROUP (富, Fu, 不) ==================== -->\n  \n  \u003c!-- 1. Leftmost Tower (Backdrop Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"18.00s\" keyTimes=\"0;0.05;0.15;0.75;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003crect x=\"25\" y=\"100\" width=\"22\" height=\"110\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"18.00s\" keyTimes=\"0;0.15;0.25;0.75;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"25\" y=\"100\" width=\"22\" height=\"110\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"29\" y=\"110\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"110\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"29\" y=\"130\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"130\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"29\" y=\"150\" width=\"4\" height=\"6\" fill=\"#38bdf8\"/>\n    \u003crect x=\"39\" y=\"150\" width=\"4\" height=\"6\" fill=\"#38bdf8\"/>\n    \u003crect x=\"29\" y=\"170\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"170\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"36.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"36\" y1=\"85\" x2=\"36\" y2=\"100\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"23\" y=\"73\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003c!-- Rotating Words (富, Fu, 不) -->\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"36\" y=\"82\" opacity=\"1\">\n          富\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"36\" y=\"82\" opacity=\"0\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"36\" y=\"82\" opacity=\"0\">\n          不\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 2. Suburban House Left (Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"14.00s\" keyTimes=\"0;0.08;0.2;0.7;0.82;1\" repeatCount=\"indefinite\" begin=\"4.00s\"/>\n    \u003cpolygon points=\"10,175 25,155 40,175\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"14.00s\" keyTimes=\"0;0.2;0.3;0.7;0.82;1\" repeatCount=\"indefinite\" begin=\"4.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"10,175 25,155 40,175\" fill=\"#ca8a04\"/>\n    \u003crect x=\"15\" y=\"175\" width=\"20\" height=\"35\" fill=\"#e2e8f0\" stroke=\"#000\" stroke-width=\"0.5\"/>\n    \u003crect x=\"22\" y=\"190\" width=\"6\" height=\"20\" fill=\"#78350f\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"28.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"25\" y1=\"140\" x2=\"25\" y2=\"155\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"12\" y=\"128\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"25\" y=\"137\" opacity=\"1\">\n          不\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"25\" y=\"137\" opacity=\"0\">\n          富\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"25\" y=\"137\" opacity=\"0\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 3. Giant Left-Center Highrise (Background Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"20.00s\" keyTimes=\"0;0.04;0.12;0.8;0.88;1\" repeatCount=\"indefinite\" begin=\"0.00s\"/>\n    \u003crect x=\"52\" y=\"80\" width=\"28\" height=\"130\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"20.00s\" keyTimes=\"0;0.12;0.2;0.8;0.88;1\" repeatCount=\"indefinite\" begin=\"0.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"52\" y=\"80\" width=\"28\" height=\"130\" rx=\"1\" fill=\"#0f172a\" stroke=\"#1e293b\" stroke-width=\"1\"/>\n    \u003crect x=\"57\" y=\"90\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"69\" y=\"90\" width=\"6\" height=\"8\" fill=\"#38bdf8\"/>\n    \u003crect x=\"57\" y=\"110\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"69\" y=\"110\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"57\" y=\"130\" width=\"6\" height=\"8\" fill=\"#38bdf8\"/>\n    \u003crect x=\"69\" y=\"130\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"40.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"66\" y1=\"65\" x2=\"66\" y2=\"80\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"53\" y=\"53\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"66\" y=\"62\" opacity=\"1\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"66\" y=\"62\" opacity=\"0\">\n          不\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"66\" y=\"62\" opacity=\"0\">\n          富\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 5. Front-Left Retail Store (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"12.00s\" keyTimes=\"0;0.1;0.25;0.7;0.85;1\" repeatCount=\"indefinite\" begin=\"3.00s\"/>\n    \u003crect x=\"42\" y=\"175\" width=\"22\" height=\"35\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"12.00s\" keyTimes=\"0;0.25;0.35;0.7;0.85;1\" repeatCount=\"indefinite\" begin=\"3.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"42\" y=\"175\" width=\"22\" height=\"35\" rx=\"1\" fill=\"#10b981\" stroke=\"#047857\" stroke-width=\"1\"/>\n    \u003cpolygon points=\"38,175 53,165 68,175\" fill=\"#f97316\"/>\n    \u003crect x=\"47\" y=\"185\" width=\"12\" height=\"25\" fill=\"#f8fafc\"/>\n  \u003c/g>\n\n  \u003c!-- ==================== CENTER GROUP (土, Do, 動) ==================== -->\n  \n  \u003c!-- 4. Overlapping Modern Condominium (Mid-Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"16.00s\" keyTimes=\"0;0.06;0.18;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"6.50s\"/>\n    \u003crect x=\"70\" y=\"135\" width=\"32\" height=\"75\" rx=\"2\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"16.00s\" keyTimes=\"0;0.18;0.28;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"6.50s\"/>\n    \u003c/rect>\n    \u003crect x=\"70\" y=\"135\" width=\"32\" height=\"75\" rx=\"2\" fill=\"#334155\" stroke=\"#475569\" stroke-width=\"1\"/>\n    \u003crect x=\"74\" y=\"145\" width=\"24\" height=\"6\" fill=\"#64748b\"/>\n    \u003crect x=\"74\" y=\"160\" width=\"24\" height=\"6\" fill=\"#e2e8f0\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"32.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"86\" y1=\"120\" x2=\"86\" y2=\"135\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"73\" y=\"108\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"86\" y=\"117\" opacity=\"1\">\n          土\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"86\" y=\"117\" opacity=\"0\">\n          Do\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"86\" y=\"117\" opacity=\"0\">\n          動\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 9. Center-Front Cozy House (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"11.00s\" keyTimes=\"0;0.12;0.25;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003cpolygon points=\"105,180 117,162 129,180\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"11.00s\" keyTimes=\"0;0.25;0.35;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"105,180 117,162 129,180\" fill=\"#0284c7\"/>\n    \u003crect x=\"109\" y=\"180\" width=\"16\" height=\"30\" fill=\"#bae6fd\" stroke=\"#0284c7\" stroke-width=\"0.5\"/>\n    \u003crect x=\"114\" y=\"192\" width=\"6\" height=\"18\" fill=\"#78350f\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"22.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"117\" y1=\"147\" x2=\"117\" y2=\"162\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"104\" y=\"135\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"117\" y=\"144\" opacity=\"1\">\n          動\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"117\" y=\"144\" opacity=\"0\">\n          土\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"117\" y=\"144\" opacity=\"0\">\n          Do\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 10. Foreground Corporate Hub (Frontmost Center Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"17.00s\" keyTimes=\"0;0.06;0.18;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"9.50s\"/>\n    \u003crect x=\"123\" y=\"145\" width=\"32\" height=\"65\" rx=\"3\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"17.00s\" keyTimes=\"0;0.18;0.28;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"9.50s\"/>\n    \u003c/rect>\n    \u003crect x=\"123\" y=\"145\" width=\"32\" height=\"65\" rx=\"3\" fill=\"#020617\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"127\" y=\"152\" width=\"24\" height=\"50\" fill=\"#1e293b\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"34.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"139\" y1=\"130\" x2=\"139\" y2=\"145\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"126\" y=\"118\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"139\" y=\"127\" opacity=\"1\">\n          Do\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"139\" y=\"127\" opacity=\"0\">\n          動\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"139\" y=\"127\" opacity=\"0\">\n          土\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- ==================== RIGHT GROUP (山, San, 産) ==================== -->\n  \n  \u003c!-- 6. Tall Right Tower (Back-Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"19.00s\" keyTimes=\"0;0.05;0.14;0.78;0.88;1\" repeatCount=\"indefinite\" begin=\"2.00s\"/>\n    \u003crect x=\"148\" y=\"90\" width=\"24\" height=\"120\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"19.00s\" keyTimes=\"0;0.14;0.24;0.78;0.88;1\" repeatCount=\"indefinite\" begin=\"2.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"148\" y=\"90\" width=\"24\" height=\"120\" rx=\"1\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"153\" y=\"100\" width=\"14\" height=\"100\" fill=\"#0f172a\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"38.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"160\" y1=\"75\" x2=\"160\" y2=\"90\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"147\" y=\"63\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"160\" y=\"72\" opacity=\"1\">\n          山\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"160\" y=\"72\" opacity=\"0\">\n          San\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"160\" y=\"72\" opacity=\"0\">\n          産\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 7. Future Quantum Lab (Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"15.00s\" keyTimes=\"0;0.07;0.2;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"8.00s\"/>\n    \u003cpath d=\"M 172 210 L 172 165 C 172 153 183 143 195 143 C 207 143 218 153 218 165 L 218 210 Z\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"15.00s\" keyTimes=\"0;0.2;0.3;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"8.00s\"/>\n    \u003c/path>\n    \u003cpath d=\"M 172 210 L 172 165 C 172 153 183 143 195 143 C 207 143 218 153 218 165 L 218 210 Z\" fill=\"#6d28d9\" stroke=\"#4c1d95\" stroke-width=\"1\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"30.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"195\" y1=\"128\" x2=\"195\" y2=\"143\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"182\" y=\"116\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"195\" y=\"125\" opacity=\"1\">\n          産\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"195\" y=\"125\" opacity=\"0\">\n          山\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"195\" y=\"125\" opacity=\"0\">\n          San\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 8. Front-Right Residential House (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"13.00s\" keyTimes=\"0;0.09;0.22;0.75;0.88;1\" repeatCount=\"indefinite\" begin=\"5.00s\"/>\n    \u003cpolygon points=\"190,175 205,155 220,175\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"13.00s\" keyTimes=\"0;0.22;0.32;0.75;0.88;1\" repeatCount=\"indefinite\" begin=\"5.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"190,175 205,155 220,175\" fill=\"#f43f5e\"/>\n    \u003crect x=\"195\" y=\"175\" width=\"20\" height=\"35\" fill=\"#f8fafc\" stroke=\"#e2e8f0\" stroke-width=\"1\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"26.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"205\" y1=\"140\" x2=\"205\" y2=\"155\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"192\" y=\"128\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"205\" y=\"137\" opacity=\"1\">\n          San\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"205\" y=\"137\" opacity=\"0\">\n          産\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"205\" y=\"137\" opacity=\"0\">\n          山\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- Optional foreground effects -->\n  \u003cg fill=\"#b91c1c\">\u003crect x=\"103\" y=\"170\" width=\"6\" height=\"42\"/>\u003crect x=\"131\" y=\"170\" width=\"6\" height=\"42\"/>\u003crect x=\"96\" y=\"170\" width=\"48\" height=\"6\"/>\u003crect x=\"100\" y=\"160\" width=\"40\" height=\"7\"/>\u003c/g>\u003cg fill=\"#f9a8d4\" opacity=\".9\">\u003ccircle cx=\"10\" cy=\"170\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"27\" cy=\"181\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"44\" cy=\"192\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"61\" cy=\"203\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"78\" cy=\"214\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"8s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"95\" cy=\"170\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"112\" cy=\"181\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"129\" cy=\"192\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"146\" cy=\"203\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"163\" cy=\"214\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"8s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"180\" cy=\"170\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"197\" cy=\"181\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"214\" cy=\"192\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"11\" cy=\"203\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003c/g>\n\u003c/svg>","color":"#FFD700","musicMode":"ambient"},{"svg":"\u003csvg style=\"width:100%;height:100%;display:block\" preserveAspectRatio=\"xMidYMid meet\"   viewBox=\"0 0 240 240\" xmlns=\"http://www.w3.org/2000/svg\">\n  \u003cdefs>\n    \u003clinearGradient id=\"skyGrad\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#f94f06\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#3a506b\"/>\n    \u003c/linearGradient>\n    \u003clinearGradient id=\"fujiBlue\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#1e3a8a\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#1d4ed8\"/>\n    \u003c/linearGradient>\n    \u003clinearGradient id=\"snowGrad\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#ffffff\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#cbd5e1\"/>\n    \u003c/linearGradient>\n    \u003cfilter id=\"holoGlow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\">\n      \u003cfeGaussianBlur stdDeviation=\"2\" result=\"blur\" />\n      \u003cfeMerge>\n        \u003cfeMergeNode in=\"blur\"/>\n        \u003cfeMergeNode in=\"SourceGraphic\"/>\n      \u003c/feMerge>\n    \u003c/filter>\n  \u003c/defs>\n\n  \u003c!-- Ground Frame and Background Canvas -->\n  \u003crect width=\"240\" height=\"240\" rx=\"24\" fill=\"url(#skyGrad)\" stroke=\"#ffd900\" stroke-width=\"2\" />\n\n  \u003c!-- Celestial background effects -->\n  \u003cg>\u003ccircle cx=\"176\" cy=\"55\" r=\"21\" fill=\"#fff8d6\"/>\u003c/g>\n\n  \u003c!-- Mt. Fuji towering to edges with majestic power -->\n  \u003cg>\n    \u003cpath d=\"M 5 215 Q 70 110 105 25 L 135 25 Q 170 110 235 215 Z\" fill=\"url(#fujiBlue)\" />\n    \u003cpath d=\"M 105 25 L 135 25 Q 144 60 131 70 L 123 62 L 118 75 L 113 64 L 106 69 Q 96 60 105 25 Z\" fill=\"url(#snowGrad)\" />\n  \u003c/g>\n\n  \u003c!-- Golden Horizon Ground Line -->\n  \u003crect x=\"10\" y=\"210\" width=\"220\" height=\"6\" rx=\"3\" fill=\"#ffd900\" />\n\n  \u003c!-- ==================== LEFT GROUP (富, Fu, 不) ==================== -->\n  \n  \u003c!-- 1. Leftmost Tower (Backdrop Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"18.00s\" keyTimes=\"0;0.05;0.15;0.75;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003crect x=\"25\" y=\"100\" width=\"22\" height=\"110\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"18.00s\" keyTimes=\"0;0.15;0.25;0.75;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"25\" y=\"100\" width=\"22\" height=\"110\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"29\" y=\"110\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"110\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"29\" y=\"130\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"130\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"29\" y=\"150\" width=\"4\" height=\"6\" fill=\"#38bdf8\"/>\n    \u003crect x=\"39\" y=\"150\" width=\"4\" height=\"6\" fill=\"#38bdf8\"/>\n    \u003crect x=\"29\" y=\"170\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"170\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"36.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"36\" y1=\"85\" x2=\"36\" y2=\"100\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"23\" y=\"73\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003c!-- Rotating Words (富, Fu, 不) -->\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"36\" y=\"82\" opacity=\"1\">\n          富\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"36\" y=\"82\" opacity=\"0\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"36\" y=\"82\" opacity=\"0\">\n          不\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 2. Suburban House Left (Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"14.00s\" keyTimes=\"0;0.08;0.2;0.7;0.82;1\" repeatCount=\"indefinite\" begin=\"4.00s\"/>\n    \u003cpolygon points=\"10,175 25,155 40,175\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"14.00s\" keyTimes=\"0;0.2;0.3;0.7;0.82;1\" repeatCount=\"indefinite\" begin=\"4.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"10,175 25,155 40,175\" fill=\"#ca8a04\"/>\n    \u003crect x=\"15\" y=\"175\" width=\"20\" height=\"35\" fill=\"#e2e8f0\" stroke=\"#000\" stroke-width=\"0.5\"/>\n    \u003crect x=\"22\" y=\"190\" width=\"6\" height=\"20\" fill=\"#78350f\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"28.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"25\" y1=\"140\" x2=\"25\" y2=\"155\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"12\" y=\"128\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"25\" y=\"137\" opacity=\"1\">\n          不\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"25\" y=\"137\" opacity=\"0\">\n          富\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"25\" y=\"137\" opacity=\"0\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 3. Giant Left-Center Highrise (Background Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"20.00s\" keyTimes=\"0;0.04;0.12;0.8;0.88;1\" repeatCount=\"indefinite\" begin=\"0.00s\"/>\n    \u003crect x=\"52\" y=\"80\" width=\"28\" height=\"130\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"20.00s\" keyTimes=\"0;0.12;0.2;0.8;0.88;1\" repeatCount=\"indefinite\" begin=\"0.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"52\" y=\"80\" width=\"28\" height=\"130\" rx=\"1\" fill=\"#0f172a\" stroke=\"#1e293b\" stroke-width=\"1\"/>\n    \u003crect x=\"57\" y=\"90\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"69\" y=\"90\" width=\"6\" height=\"8\" fill=\"#38bdf8\"/>\n    \u003crect x=\"57\" y=\"110\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"69\" y=\"110\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"57\" y=\"130\" width=\"6\" height=\"8\" fill=\"#38bdf8\"/>\n    \u003crect x=\"69\" y=\"130\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"40.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"66\" y1=\"65\" x2=\"66\" y2=\"80\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"53\" y=\"53\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"66\" y=\"62\" opacity=\"1\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"66\" y=\"62\" opacity=\"0\">\n          不\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"66\" y=\"62\" opacity=\"0\">\n          富\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 5. Front-Left Retail Store (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"12.00s\" keyTimes=\"0;0.1;0.25;0.7;0.85;1\" repeatCount=\"indefinite\" begin=\"3.00s\"/>\n    \u003crect x=\"42\" y=\"175\" width=\"22\" height=\"35\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"12.00s\" keyTimes=\"0;0.25;0.35;0.7;0.85;1\" repeatCount=\"indefinite\" begin=\"3.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"42\" y=\"175\" width=\"22\" height=\"35\" rx=\"1\" fill=\"#10b981\" stroke=\"#047857\" stroke-width=\"1\"/>\n    \u003cpolygon points=\"38,175 53,165 68,175\" fill=\"#f97316\"/>\n    \u003crect x=\"47\" y=\"185\" width=\"12\" height=\"25\" fill=\"#f8fafc\"/>\n  \u003c/g>\n\n  \u003c!-- ==================== CENTER GROUP (土, Do, 動) ==================== -->\n  \n  \u003c!-- 4. Overlapping Modern Condominium (Mid-Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"16.00s\" keyTimes=\"0;0.06;0.18;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"6.50s\"/>\n    \u003crect x=\"70\" y=\"135\" width=\"32\" height=\"75\" rx=\"2\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"16.00s\" keyTimes=\"0;0.18;0.28;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"6.50s\"/>\n    \u003c/rect>\n    \u003crect x=\"70\" y=\"135\" width=\"32\" height=\"75\" rx=\"2\" fill=\"#334155\" stroke=\"#475569\" stroke-width=\"1\"/>\n    \u003crect x=\"74\" y=\"145\" width=\"24\" height=\"6\" fill=\"#64748b\"/>\n    \u003crect x=\"74\" y=\"160\" width=\"24\" height=\"6\" fill=\"#e2e8f0\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"32.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"86\" y1=\"120\" x2=\"86\" y2=\"135\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"73\" y=\"108\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"86\" y=\"117\" opacity=\"1\">\n          土\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"86\" y=\"117\" opacity=\"0\">\n          Do\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"86\" y=\"117\" opacity=\"0\">\n          動\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 9. Center-Front Cozy House (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"11.00s\" keyTimes=\"0;0.12;0.25;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003cpolygon points=\"105,180 117,162 129,180\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"11.00s\" keyTimes=\"0;0.25;0.35;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"105,180 117,162 129,180\" fill=\"#0284c7\"/>\n    \u003crect x=\"109\" y=\"180\" width=\"16\" height=\"30\" fill=\"#bae6fd\" stroke=\"#0284c7\" stroke-width=\"0.5\"/>\n    \u003crect x=\"114\" y=\"192\" width=\"6\" height=\"18\" fill=\"#78350f\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"22.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"117\" y1=\"147\" x2=\"117\" y2=\"162\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"104\" y=\"135\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"117\" y=\"144\" opacity=\"1\">\n          動\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"117\" y=\"144\" opacity=\"0\">\n          土\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"117\" y=\"144\" opacity=\"0\">\n          Do\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 10. Foreground Corporate Hub (Frontmost Center Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"17.00s\" keyTimes=\"0;0.06;0.18;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"9.50s\"/>\n    \u003crect x=\"123\" y=\"145\" width=\"32\" height=\"65\" rx=\"3\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"17.00s\" keyTimes=\"0;0.18;0.28;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"9.50s\"/>\n    \u003c/rect>\n    \u003crect x=\"123\" y=\"145\" width=\"32\" height=\"65\" rx=\"3\" fill=\"#020617\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"127\" y=\"152\" width=\"24\" height=\"50\" fill=\"#1e293b\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"34.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"139\" y1=\"130\" x2=\"139\" y2=\"145\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"126\" y=\"118\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"139\" y=\"127\" opacity=\"1\">\n          Do\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"139\" y=\"127\" opacity=\"0\">\n          動\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"139\" y=\"127\" opacity=\"0\">\n          土\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- ==================== RIGHT GROUP (山, San, 産) ==================== -->\n  \n  \u003c!-- 6. Tall Right Tower (Back-Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"19.00s\" keyTimes=\"0;0.05;0.14;0.78;0.88;1\" repeatCount=\"indefinite\" begin=\"2.00s\"/>\n    \u003crect x=\"148\" y=\"90\" width=\"24\" height=\"120\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"19.00s\" keyTimes=\"0;0.14;0.24;0.78;0.88;1\" repeatCount=\"indefinite\" begin=\"2.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"148\" y=\"90\" width=\"24\" height=\"120\" rx=\"1\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"153\" y=\"100\" width=\"14\" height=\"100\" fill=\"#0f172a\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"38.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"160\" y1=\"75\" x2=\"160\" y2=\"90\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"147\" y=\"63\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"160\" y=\"72\" opacity=\"1\">\n          山\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"160\" y=\"72\" opacity=\"0\">\n          San\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"160\" y=\"72\" opacity=\"0\">\n          産\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 7. Future Quantum Lab (Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"15.00s\" keyTimes=\"0;0.07;0.2;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"8.00s\"/>\n    \u003cpath d=\"M 172 210 L 172 165 C 172 153 183 143 195 143 C 207 143 218 153 218 165 L 218 210 Z\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"15.00s\" keyTimes=\"0;0.2;0.3;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"8.00s\"/>\n    \u003c/path>\n    \u003cpath d=\"M 172 210 L 172 165 C 172 153 183 143 195 143 C 207 143 218 153 218 165 L 218 210 Z\" fill=\"#6d28d9\" stroke=\"#4c1d95\" stroke-width=\"1\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"30.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"195\" y1=\"128\" x2=\"195\" y2=\"143\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"182\" y=\"116\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"195\" y=\"125\" opacity=\"1\">\n          産\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"195\" y=\"125\" opacity=\"0\">\n          山\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"195\" y=\"125\" opacity=\"0\">\n          San\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 8. Front-Right Residential House (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"13.00s\" keyTimes=\"0;0.09;0.22;0.75;0.88;1\" repeatCount=\"indefinite\" begin=\"5.00s\"/>\n    \u003cpolygon points=\"190,175 205,155 220,175\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"13.00s\" keyTimes=\"0;0.22;0.32;0.75;0.88;1\" repeatCount=\"indefinite\" begin=\"5.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"190,175 205,155 220,175\" fill=\"#f43f5e\"/>\n    \u003crect x=\"195\" y=\"175\" width=\"20\" height=\"35\" fill=\"#f8fafc\" stroke=\"#e2e8f0\" stroke-width=\"1\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"26.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"205\" y1=\"140\" x2=\"205\" y2=\"155\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"192\" y=\"128\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"205\" y=\"137\" opacity=\"1\">\n          San\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"205\" y=\"137\" opacity=\"0\">\n          産\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"205\" y=\"137\" opacity=\"0\">\n          山\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- Optional foreground effects -->\n  \u003cg fill=\"#b91c1c\">\u003crect x=\"103\" y=\"170\" width=\"6\" height=\"42\"/>\u003crect x=\"131\" y=\"170\" width=\"6\" height=\"42\"/>\u003crect x=\"96\" y=\"170\" width=\"48\" height=\"6\"/>\u003crect x=\"100\" y=\"160\" width=\"40\" height=\"7\"/>\u003c/g>\u003cg fill=\"#f9a8d4\" opacity=\".9\">\u003ccircle cx=\"10\" cy=\"170\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"27\" cy=\"181\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"44\" cy=\"192\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"61\" cy=\"203\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"78\" cy=\"214\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"8s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"95\" cy=\"170\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"112\" cy=\"181\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"129\" cy=\"192\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"146\" cy=\"203\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"163\" cy=\"214\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"8s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"180\" cy=\"170\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"197\" cy=\"181\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"214\" cy=\"192\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"11\" cy=\"203\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003c/g>\n\u003c/svg>","color":"#E2E8F0","musicMode":"theme"},{"svg":"\u003csvg style=\"width:100%;height:100%;display:block\" preserveAspectRatio=\"xMidYMid meet\"   viewBox=\"0 0 240 240\" xmlns=\"http://www.w3.org/2000/svg\">\n  \u003cdefs>\n    \u003clinearGradient id=\"skyGrad\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#050505\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#3a506b\"/>\n    \u003c/linearGradient>\n    \u003clinearGradient id=\"fujiBlue\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#242528\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#1d4ed8\"/>\n    \u003c/linearGradient>\n    \u003clinearGradient id=\"snowGrad\" x1=\"0\" y1=\"0\" x2=\"0\" y2=\"1\">\n      \u003cstop offset=\"0%\" stop-color=\"#ffffff\"/>\n      \u003cstop offset=\"100%\" stop-color=\"#cbd5e1\"/>\n    \u003c/linearGradient>\n    \u003cfilter id=\"holoGlow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\">\n      \u003cfeGaussianBlur stdDeviation=\"2\" result=\"blur\" />\n      \u003cfeMerge>\n        \u003cfeMergeNode in=\"blur\"/>\n        \u003cfeMergeNode in=\"SourceGraphic\"/>\n      \u003c/feMerge>\n    \u003c/filter>\n  \u003c/defs>\n\n  \u003c!-- Ground Frame and Background Canvas -->\n  \u003crect width=\"240\" height=\"240\" rx=\"24\" fill=\"url(#skyGrad)\" stroke=\"#ffd900\" stroke-width=\"2\" />\n\n  \u003c!-- Celestial background effects -->\n  \u003ccircle cx=\"12\" cy=\"12\" r=\"0.6\" fill=\"#fff7cc\" opacity=\"0.45\">\u003c/circle>\u003ccircle cx=\"59\" cy=\"85\" r=\"0.95\" fill=\"#fff7cc\" opacity=\"0.55\">\u003c/circle>\u003ccircle cx=\"106\" cy=\"46\" r=\"1.2999999999999998\" fill=\"#fff7cc\" opacity=\"0.65\">\u003c/circle>\u003ccircle cx=\"153\" cy=\"119\" r=\"0.6\" fill=\"#fff7cc\" opacity=\"0.75\">\u003c/circle>\u003ccircle cx=\"200\" cy=\"80\" r=\"0.95\" fill=\"#fff7cc\" opacity=\"0.8500000000000001\">\u003c/circle>\u003ccircle cx=\"31\" cy=\"41\" r=\"1.2999999999999998\" fill=\"#fff7cc\" opacity=\"0.45\">\u003c/circle>\u003ccircle cx=\"78\" cy=\"114\" r=\"0.6\" fill=\"#fff7cc\" opacity=\"0.55\">\u003c/circle>\u003ccircle cx=\"125\" cy=\"75\" r=\"0.95\" fill=\"#fff7cc\" opacity=\"0.65\">\u003c/circle>\u003ccircle cx=\"172\" cy=\"36\" r=\"1.2999999999999998\" fill=\"#fff7cc\" opacity=\"0.75\">\u003c/circle>\u003ccircle cx=\"219\" cy=\"109\" r=\"0.6\" fill=\"#fff7cc\" opacity=\"0.8500000000000001\">\u003c/circle>\u003ccircle cx=\"50\" cy=\"70\" r=\"0.95\" fill=\"#fff7cc\" opacity=\"0.45\">\u003c/circle>\u003ccircle cx=\"97\" cy=\"31\" r=\"1.2999999999999998\" fill=\"#fff7cc\" opacity=\"0.55\">\u003c/circle>\u003ccircle cx=\"144\" cy=\"104\" r=\"0.6\" fill=\"#fff7cc\" opacity=\"0.65\">\u003c/circle>\u003ccircle cx=\"191\" cy=\"65\" r=\"0.95\" fill=\"#fff7cc\" opacity=\"0.75\">\u003c/circle>\u003ccircle cx=\"22\" cy=\"26\" r=\"1.2999999999999998\" fill=\"#fff7cc\" opacity=\"0.8500000000000001\">\u003c/circle>\u003ccircle cx=\"69\" cy=\"99\" r=\"0.6\" fill=\"#fff7cc\" opacity=\"0.45\">\u003c/circle>\u003cg>\u003ccircle cx=\"176\" cy=\"55\" r=\"21\" fill=\"#fff8d6\"/>\u003c/g>\u003cg opacity=\"0\">\u003cline x1=\"20\" y1=\"30\" x2=\"48\" y2=\"45\" stroke=\"#fff\" stroke-width=\"2\"/>\u003ccircle cx=\"48\" cy=\"45\" r=\"2\" fill=\"#fff\"/>\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;170 80\" dur=\"2.20s\" begin=\"3.00s\" repeatCount=\"indefinite\"/>\u003canimate attributeName=\"opacity\" values=\"0;1;0\" dur=\"2.20s\" begin=\"3.00s\" repeatCount=\"indefinite\"/>\u003c/g>\n\n  \u003c!-- Mt. Fuji towering to edges with majestic power -->\n  \u003cg>\n    \u003cpath d=\"M 5 215 Q 70 110 105 25 L 135 25 Q 170 110 235 215 Z\" fill=\"url(#fujiBlue)\" />\n    \u003cpath d=\"M 105 25 L 135 25 Q 144 60 131 70 L 123 62 L 118 75 L 113 64 L 106 69 Q 96 60 105 25 Z\" fill=\"url(#snowGrad)\" />\n  \u003c/g>\n\n  \u003c!-- Golden Horizon Ground Line -->\n  \u003crect x=\"10\" y=\"210\" width=\"220\" height=\"6\" rx=\"3\" fill=\"#ffd900\" />\n\n  \u003c!-- ==================== LEFT GROUP (富, Fu, 不) ==================== -->\n  \n  \u003c!-- 1. Leftmost Tower (Backdrop Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"18.00s\" keyTimes=\"0;0.05;0.15;0.75;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003crect x=\"25\" y=\"100\" width=\"22\" height=\"110\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"18.00s\" keyTimes=\"0;0.15;0.25;0.75;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"25\" y=\"100\" width=\"22\" height=\"110\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"29\" y=\"110\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"110\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"29\" y=\"130\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"130\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"29\" y=\"150\" width=\"4\" height=\"6\" fill=\"#38bdf8\"/>\n    \u003crect x=\"39\" y=\"150\" width=\"4\" height=\"6\" fill=\"#38bdf8\"/>\n    \u003crect x=\"29\" y=\"170\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n    \u003crect x=\"39\" y=\"170\" width=\"4\" height=\"6\" fill=\"#fde047\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"36.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"36\" y1=\"85\" x2=\"36\" y2=\"100\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"23\" y=\"73\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003c!-- Rotating Words (富, Fu, 不) -->\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"36\" y=\"82\" opacity=\"1\">\n          富\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"36\" y=\"82\" opacity=\"0\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"36\" y=\"82\" opacity=\"0\">\n          不\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"54.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 2. Suburban House Left (Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"14.00s\" keyTimes=\"0;0.08;0.2;0.7;0.82;1\" repeatCount=\"indefinite\" begin=\"4.00s\"/>\n    \u003cpolygon points=\"10,175 25,155 40,175\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"14.00s\" keyTimes=\"0;0.2;0.3;0.7;0.82;1\" repeatCount=\"indefinite\" begin=\"4.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"10,175 25,155 40,175\" fill=\"#ca8a04\"/>\n    \u003crect x=\"15\" y=\"175\" width=\"20\" height=\"35\" fill=\"#e2e8f0\" stroke=\"#000\" stroke-width=\"0.5\"/>\n    \u003crect x=\"22\" y=\"190\" width=\"6\" height=\"20\" fill=\"#78350f\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"28.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"25\" y1=\"140\" x2=\"25\" y2=\"155\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"12\" y=\"128\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"25\" y=\"137\" opacity=\"1\">\n          不\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"25\" y=\"137\" opacity=\"0\">\n          富\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"25\" y=\"137\" opacity=\"0\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"42.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 3. Giant Left-Center Highrise (Background Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"20.00s\" keyTimes=\"0;0.04;0.12;0.8;0.88;1\" repeatCount=\"indefinite\" begin=\"0.00s\"/>\n    \u003crect x=\"52\" y=\"80\" width=\"28\" height=\"130\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"20.00s\" keyTimes=\"0;0.12;0.2;0.8;0.88;1\" repeatCount=\"indefinite\" begin=\"0.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"52\" y=\"80\" width=\"28\" height=\"130\" rx=\"1\" fill=\"#0f172a\" stroke=\"#1e293b\" stroke-width=\"1\"/>\n    \u003crect x=\"57\" y=\"90\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"69\" y=\"90\" width=\"6\" height=\"8\" fill=\"#38bdf8\"/>\n    \u003crect x=\"57\" y=\"110\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"69\" y=\"110\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n    \u003crect x=\"57\" y=\"130\" width=\"6\" height=\"8\" fill=\"#38bdf8\"/>\n    \u003crect x=\"69\" y=\"130\" width=\"6\" height=\"8\" fill=\"#eab308\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"40.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"66\" y1=\"65\" x2=\"66\" y2=\"80\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"53\" y=\"53\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"66\" y=\"62\" opacity=\"1\">\n          Fu\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"66\" y=\"62\" opacity=\"0\">\n          不\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"66\" y=\"62\" opacity=\"0\">\n          富\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"60.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 5. Front-Left Retail Store (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"12.00s\" keyTimes=\"0;0.1;0.25;0.7;0.85;1\" repeatCount=\"indefinite\" begin=\"3.00s\"/>\n    \u003crect x=\"42\" y=\"175\" width=\"22\" height=\"35\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"12.00s\" keyTimes=\"0;0.25;0.35;0.7;0.85;1\" repeatCount=\"indefinite\" begin=\"3.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"42\" y=\"175\" width=\"22\" height=\"35\" rx=\"1\" fill=\"#10b981\" stroke=\"#047857\" stroke-width=\"1\"/>\n    \u003cpolygon points=\"38,175 53,165 68,175\" fill=\"#f97316\"/>\n    \u003crect x=\"47\" y=\"185\" width=\"12\" height=\"25\" fill=\"#f8fafc\"/>\n  \u003c/g>\n\n  \u003c!-- ==================== CENTER GROUP (土, Do, 動) ==================== -->\n  \n  \u003c!-- 4. Overlapping Modern Condominium (Mid-Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"16.00s\" keyTimes=\"0;0.06;0.18;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"6.50s\"/>\n    \u003crect x=\"70\" y=\"135\" width=\"32\" height=\"75\" rx=\"2\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"16.00s\" keyTimes=\"0;0.18;0.28;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"6.50s\"/>\n    \u003c/rect>\n    \u003crect x=\"70\" y=\"135\" width=\"32\" height=\"75\" rx=\"2\" fill=\"#334155\" stroke=\"#475569\" stroke-width=\"1\"/>\n    \u003crect x=\"74\" y=\"145\" width=\"24\" height=\"6\" fill=\"#64748b\"/>\n    \u003crect x=\"74\" y=\"160\" width=\"24\" height=\"6\" fill=\"#e2e8f0\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"32.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"86\" y1=\"120\" x2=\"86\" y2=\"135\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"73\" y=\"108\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"86\" y=\"117\" opacity=\"1\">\n          土\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"86\" y=\"117\" opacity=\"0\">\n          Do\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"86\" y=\"117\" opacity=\"0\">\n          動\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"48.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 9. Center-Front Cozy House (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"11.00s\" keyTimes=\"0;0.12;0.25;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003cpolygon points=\"105,180 117,162 129,180\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"11.00s\" keyTimes=\"0;0.25;0.35;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"1.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"105,180 117,162 129,180\" fill=\"#0284c7\"/>\n    \u003crect x=\"109\" y=\"180\" width=\"16\" height=\"30\" fill=\"#bae6fd\" stroke=\"#0284c7\" stroke-width=\"0.5\"/>\n    \u003crect x=\"114\" y=\"192\" width=\"6\" height=\"18\" fill=\"#78350f\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"22.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"117\" y1=\"147\" x2=\"117\" y2=\"162\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"104\" y=\"135\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"117\" y=\"144\" opacity=\"1\">\n          動\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"117\" y=\"144\" opacity=\"0\">\n          土\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"117\" y=\"144\" opacity=\"0\">\n          Do\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"33.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 10. Foreground Corporate Hub (Frontmost Center Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"17.00s\" keyTimes=\"0;0.06;0.18;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"9.50s\"/>\n    \u003crect x=\"123\" y=\"145\" width=\"32\" height=\"65\" rx=\"3\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"17.00s\" keyTimes=\"0;0.18;0.28;0.76;0.88;1\" repeatCount=\"indefinite\" begin=\"9.50s\"/>\n    \u003c/rect>\n    \u003crect x=\"123\" y=\"145\" width=\"32\" height=\"65\" rx=\"3\" fill=\"#020617\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"127\" y=\"152\" width=\"24\" height=\"50\" fill=\"#1e293b\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"34.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"139\" y1=\"130\" x2=\"139\" y2=\"145\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"126\" y=\"118\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"139\" y=\"127\" opacity=\"1\">\n          Do\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"139\" y=\"127\" opacity=\"0\">\n          動\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"139\" y=\"127\" opacity=\"0\">\n          土\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"51.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- ==================== RIGHT GROUP (山, San, 産) ==================== -->\n  \n  \u003c!-- 6. Tall Right Tower (Back-Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"19.00s\" keyTimes=\"0;0.05;0.14;0.78;0.88;1\" repeatCount=\"indefinite\" begin=\"2.00s\"/>\n    \u003crect x=\"148\" y=\"90\" width=\"24\" height=\"120\" rx=\"1\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"19.00s\" keyTimes=\"0;0.14;0.24;0.78;0.88;1\" repeatCount=\"indefinite\" begin=\"2.00s\"/>\n    \u003c/rect>\n    \u003crect x=\"148\" y=\"90\" width=\"24\" height=\"120\" rx=\"1\" fill=\"#1e293b\" stroke=\"#334155\" stroke-width=\"1\"/>\n    \u003crect x=\"153\" y=\"100\" width=\"14\" height=\"100\" fill=\"#0f172a\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"38.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"160\" y1=\"75\" x2=\"160\" y2=\"90\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"147\" y=\"63\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"160\" y=\"72\" opacity=\"1\">\n          山\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"160\" y=\"72\" opacity=\"0\">\n          San\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"160\" y=\"72\" opacity=\"0\">\n          産\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"57.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 7. Future Quantum Lab (Midground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"15.00s\" keyTimes=\"0;0.07;0.2;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"8.00s\"/>\n    \u003cpath d=\"M 172 210 L 172 165 C 172 153 183 143 195 143 C 207 143 218 153 218 165 L 218 210 Z\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"15.00s\" keyTimes=\"0;0.2;0.3;0.72;0.85;1\" repeatCount=\"indefinite\" begin=\"8.00s\"/>\n    \u003c/path>\n    \u003cpath d=\"M 172 210 L 172 165 C 172 153 183 143 195 143 C 207 143 218 153 218 165 L 218 210 Z\" fill=\"#6d28d9\" stroke=\"#4c1d95\" stroke-width=\"1\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Hidden, Cycle 2 Active) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"none;inline;none\" dur=\"30.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"195\" y1=\"128\" x2=\"195\" y2=\"143\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"182\" y=\"116\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"195\" y=\"125\" opacity=\"1\">\n          産\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"195\" y=\"125\" opacity=\"0\">\n          山\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"195\" y=\"125\" opacity=\"0\">\n          San\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"45.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- 8. Front-Right Residential House (Foreground Layer) -->\n  \u003cg opacity=\"0\">\n    \u003canimate attributeName=\"opacity\" values=\"0;0;1;1;0;0\" dur=\"13.00s\" keyTimes=\"0;0.09;0.22;0.75;0.88;1\" repeatCount=\"indefinite\" begin=\"5.00s\"/>\n    \u003cpolygon points=\"190,175 205,155 220,175\" fill=\"none\" stroke=\"#67e8f9\" stroke-width=\"1.5\" filter=\"url(#holoGlow)\">\n      \u003canimate attributeName=\"stroke-opacity\" values=\"1;1;0;0;1;1\" dur=\"13.00s\" keyTimes=\"0;0.22;0.32;0.75;0.88;1\" repeatCount=\"indefinite\" begin=\"5.00s\"/>\n    \u003c/polygon>\n    \u003cpolygon points=\"190,175 205,155 220,175\" fill=\"#f43f5e\"/>\n    \u003crect x=\"195\" y=\"175\" width=\"20\" height=\"35\" fill=\"#f8fafc\" stroke=\"#e2e8f0\" stroke-width=\"1\"/>\n\n    \u003c!-- Signboard Controller (Cycle 1 Active, Cycle 2 Hidden) -->\n    \u003cg>\n      \u003canimate attributeName=\"display\" values=\"inline;none;inline\" dur=\"26.00s\" keyTimes=\"0;0.5;1\" repeatCount=\"indefinite\" />\n      \u003cline x1=\"205\" y1=\"140\" x2=\"205\" y2=\"155\" stroke=\"#ffd900\" stroke-width=\"1\" />\n      \u003crect x=\"192\" y=\"128\" width=\"26\" height=\"12\" rx=\"2\" fill=\"#151d30\" stroke=\"#ffd900\" stroke-width=\"0.8\" />\n      \u003cg text-anchor=\"middle\" font-family=\"'Noto Sans JP', sans-serif\" font-size=\"8.5\" font-weight=\"bold\" fill=\"#ffd900\">\n        \u003ctext x=\"205\" y=\"137\" opacity=\"1\">\n          San\u003canimate attributeName=\"opacity\" values=\"1;0;0;1\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"205\" y=\"137\" opacity=\"0\">\n          産\u003canimate attributeName=\"opacity\" values=\"0;1;0;0\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n        \u003ctext x=\"205\" y=\"137\" opacity=\"0\">\n          山\u003canimate attributeName=\"opacity\" values=\"0;0;1;0\" dur=\"39.00s\" keyTimes=\"0;0.333;0.666;1\" repeatCount=\"indefinite\" />\n        \u003c/text>\n      \u003c/g>\n    \u003c/g>\n  \u003c/g>\n\n  \u003c!-- Optional foreground effects -->\n  \u003cpath d=\"M0 168 Q25 150 55 166 T110 165 T165 167 T240 162 L240 220 L0 220 Z\" fill=\"#fff\" opacity=\".32\"/>\u003cg fill=\"#b91c1c\">\u003crect x=\"103\" y=\"170\" width=\"6\" height=\"42\"/>\u003crect x=\"131\" y=\"170\" width=\"6\" height=\"42\"/>\u003crect x=\"96\" y=\"170\" width=\"48\" height=\"6\"/>\u003crect x=\"100\" y=\"160\" width=\"40\" height=\"7\"/>\u003c/g>\u003cg fill=\"#f9a8d4\" opacity=\".9\">\u003ccircle cx=\"10\" cy=\"170\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"27\" cy=\"181\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"44\" cy=\"192\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"61\" cy=\"203\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"78\" cy=\"214\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"8s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"95\" cy=\"170\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"112\" cy=\"181\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"129\" cy=\"192\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"146\" cy=\"203\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"163\" cy=\"214\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"8s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"180\" cy=\"170\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"4s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"197\" cy=\"181\" r=\"2.9\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"5s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"214\" cy=\"192\" r=\"1.5\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;-8 18\" dur=\"6s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003ccircle cx=\"11\" cy=\"203\" r=\"2.2\">\u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"0 0;8 18\" dur=\"7s\" repeatCount=\"indefinite\"/>\u003c/circle>\u003c/g>\n\u003c/svg>","color":"#0D0D0D","musicMode":"silent"}];
+  const TRANSITIONS = [{"sound":"speech","speech":{"text":"フドーサン","rate":1.2,"pitch":0.1,"volume":1}},{"sound":"speech","speech":{"text":"フドーサン","rate":0.7,"pitch":0.9,"volume":1}},{"sound":"speech","speech":{"text":"フドーサン","rate":1.8,"pitch":1,"volume":0.5}}];
+  const EFFECT = "glow";
+  const LINK_MODE = true;
+  const queryParams = new URLSearchParams(window.location.search);
+  const linkCardTitle = queryParams.get("title") || "富土山";
+  const requestedMusicBase = queryParams.get("musicBase") || "./music/";
+
+  function musicPath(filename) {
+    const base = requestedMusicBase.endsWith("/")
+      ? requestedMusicBase
+      : requestedMusicBase + "/";
+    return base + filename;
+  }
+
+  let currentState = 0;
+  let managedAudio = null;
+  let toastTimer = null;
+  let sharedAudioContext = null;
+  let themeLoopTimer = null;
+  let musicSessionId = 0;
+
+  const button = document.getElementById("plip-core-button");
+  const stage = document.getElementById("plip-stage");
+  const toast = document.getElementById("plip-toast");
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+  }
+
+  function stopMediaInDocument(targetDocument) {
+    try {
+      targetDocument.querySelectorAll("audio, video").forEach(media => {
+        try {
+          media.pause();
+          media.currentTime = 0;
+        } catch (_) {}
+      });
+
+      targetDocument.querySelectorAll("[data-plip-managed-audio='true']")
+        .forEach(element => element.remove());
+
+      targetDocument.querySelectorAll("iframe").forEach(frame => {
+        try {
+          frame.contentWindow.postMessage({ type: "PLIP_STOP_AUDIO" }, "*");
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  function stopManagedMusic() {
+    musicSessionId += 1;
+
+    if (themeLoopTimer) {
+      clearTimeout(themeLoopTimer);
+      themeLoopTimer = null;
+    }
+
+    if (managedAudio) {
+      try { managedAudio.pause(); } catch (_) {}
+      managedAudio.remove();
+      managedAudio = null;
+    }
+
+    stopMediaInDocument(document);
+
+    // LINK HP側の兄弟ボタン停止は、親ページのpostMessage制御に任せる。
+  }
+
+  function getAudioContext() {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) return null;
+
+    if (!sharedAudioContext || sharedAudioContext.state === "closed") {
+      sharedAudioContext = new AudioContextClass();
+    }
+    return sharedAudioContext;
+  }
+
+  function tone(context, frequency, start, duration,
+                type = "sine", volume = .1) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration);
+  }
+
+  function playClickSound(setting) {
+    if (setting.sound === "none") return;
+
+    if (setting.sound === "speech") {
+      if (!("speechSynthesis" in window)) return;
+
+      const utterance = new SpeechSynthesisUtterance(setting.speech.text);
+      utterance.lang = "ja-JP";
+      utterance.rate = setting.speech.rate;
+      utterance.pitch = setting.speech.pitch;
+      utterance.volume = setting.speech.volume;
+      speechSynthesis.speak(utterance);
+      return;
+    }
+
+    const context = getAudioContext();
+    if (!context) return;
+
+    if (context.state === "suspended") {
+      context.resume();
+    }
+
+    const time = context.currentTime;
+
+    if (setting.sound === "click") {
+      tone(context, 850, time, .035, "sine", .12);
+    } else if (setting.sound === "digital") {
+      tone(context, 620, time, .07, "square", .08);
+      tone(context, 980, time + .07, .09, "square", .07);
+    } else if (setting.sound === "confirm") {
+      tone(context, 523.25, time, .10, "sine", .10);
+      tone(context, 783.99, time + .09, .16, "sine", .10);
+    } else if (setting.sound === "metallic") {
+      tone(context, 1300, time, .07, "triangle", .07);
+      tone(context, 1780, time + .018, .11, "triangle", .05);
+    } else if (setting.sound === "impact") {
+      tone(context, 120, time, .16, "sine", .18);
+      tone(context, 65, time + .03, .22, "triangle", .09);
+    } else if (setting.sound === "sparkle") {
+      [880, 1174, 1568, 2093].forEach((frequency, index) => {
+        tone(context, frequency, time + index * .055,
+             .16, "sine", .06);
+      });
+    }
+  }
+
+  function runEffect() {
+    if (EFFECT === "none") return;
+
+    const className = "effect-" + EFFECT;
+    button.classList.remove(className);
+    void button.offsetWidth;
+    button.classList.add(className);
+    button.addEventListener("animationend", () => {
+      button.classList.remove(className);
+    }, { once: true });
+  }
+
+  function createManagedAudio(source, loop = false) {
+    const audio = document.createElement("audio");
+    audio.src = source;
+    audio.loop = loop;
+    audio.volume = .35;
+    audio.preload = "auto";
+    audio.dataset.plipManagedAudio = "true";
+    audio.style.display = "none";
+    document.body.appendChild(audio);
+    managedAudio = audio;
+    return audio;
+  }
+
+  function randomChoice(items) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  async function playSourceWithFallback(primarySource, fallbackSource, options = {}) {
+    const sessionId = options.sessionId;
+    const loop = Boolean(options.loop);
+    const onEnded = options.onEnded;
+
+    async function attempt(source, isFallback) {
+      if (sessionId !== musicSessionId) return false;
+
+      const audio = createManagedAudio(source, loop);
+
+      if (typeof onEnded === "function") {
+        audio.addEventListener("ended", () => {
+          if (sessionId !== musicSessionId) return;
+          onEnded();
+        }, { once: true });
+      }
+
+      try {
+        await audio.play();
+
+        if (LINK_MODE && currentState === 1 && window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: "PLIP_TRACK_PLAYING",
+            title: encodeURIComponent(linkCardTitle),
+            trackUrl: audio.currentSrc || audio.src || source
+          }, "*");
+        }
+
+        return true;
+      } catch (_) {
+        if (managedAudio === audio) {
+          audio.remove();
+          managedAudio = null;
+        }
+
+        if (!isFallback && primarySource !== fallbackSource) {
+          return attempt(fallbackSource, true);
+        }
+        return false;
+      }
+    }
+
+    return attempt(primarySource, false);
+  }
+
+  async function playMusicForState(state) {
+    const sessionId = musicSessionId;
+
+    if (state.musicMode === "silent") {
+      showToast("🔇 音楽をオフにしました");
+      return;
+    }
+
+    if (state.musicMode === "ambient") {
+      const chosen = randomChoice([
+        musicPath("bgm.mp3"),
+        musicPath("bgm1.mp3")
+      ]);
+
+      const played = await playSourceWithFallback(
+        chosen,
+        musicPath("bgm.mp3"),
+        { loop: true, sessionId }
+      );
+
+      if (sessionId !== musicSessionId) return;
+      showToast(played
+        ? "🌿 BGMを再生：" + chosen.split("/").pop()
+        : "⚠️ BGMを再生できません");
+      return;
+    }
+
+    const themeSources = [
+      musicPath("song.mp3"),
+      musicPath("song1.mp3"),
+      musicPath("song2.mp3"),
+      musicPath("song3.mp3"),
+      musicPath("song4.mp3")
+    ];
+
+    const playNextTheme = async () => {
+      if (sessionId !== musicSessionId || currentState !== 1) return;
+
+      const chosen = randomChoice(themeSources);
+      const played = await playSourceWithFallback(
+        chosen,
+        musicPath("song.mp3"),
+        {
+          loop: false,
+          sessionId,
+          onEnded: () => {
+            if (sessionId !== musicSessionId || currentState !== 1) return;
+            themeLoopTimer = setTimeout(() => {
+              themeLoopTimer = null;
+              playNextTheme();
+            }, 3000);
+          }
+        }
+      );
+
+      if (sessionId !== musicSessionId || currentState !== 1) return;
+      showToast(played
+        ? "🎵 主題歌を再生：" + chosen.split("/").pop()
+        : "⚠️ 主題歌を再生できません");
+    };
+
+    await playNextTheme();
+  }
+
+  async function applyState(withSound = true, transitionIndex = 0) {
+    const state = STATES[currentState];
+
+    stage.innerHTML = state.svg;
+    button.style.borderColor = state.color;
+    button.style.boxShadow =
+      "0 0 28px " + state.color +
+      "55, 0 18px 45px rgba(0,0,0,.5)";
+
+    runEffect();
+
+    if (withSound) {
+      stopManagedMusic();
+      playClickSound(TRANSITIONS[transitionIndex]);
+      await playMusicForState(state);
+    }
+  }
+
+  button.addEventListener("click", () => {
+    const transitionIndex = currentState;
+    currentState = (currentState + 1) % STATES.length;
+    applyState(true, transitionIndex);
+
+    if (LINK_MODE && window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: "PLIP_BUTTON_CLICK",
+        title: encodeURIComponent(linkCardTitle),
+        stateValue: currentState
+      }, "*");
+    }
+  });
+
+  window.addEventListener("message", event => {
+    if (event.data && event.data.type === "PLIP_STOP_AUDIO") {
+      stopManagedMusic();
+    }
+  });
+
+  applyState(false, 0);
+})();
+</script>
+</body>
+</html>

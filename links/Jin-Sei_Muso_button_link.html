@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PLIP 3段階連動ボタン v5</title>
+<style>
+* { box-sizing: border-box; }
+html, body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: transparent;
+  color: #f8fafc;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+    "Yu Gothic UI", "Meiryo", sans-serif;
+}
+.plip-wrap {
+  position: relative;
+  width: min(100vw, 100vh);
+  height: min(100vw, 100vh);
+  aspect-ratio: 1 / 1;
+  user-select: none;
+}
+#plip-core-button {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  overflow: hidden;
+  border: 2px solid #FFEA70;
+  border-radius: 18px;
+  cursor: pointer;
+  background: linear-gradient(135deg, #475569, #1e293b, #0f172a);
+  box-shadow: 0 0 28px #FFEA7055, 0 18px 45px rgba(0,0,0,.5);
+  transition: border-color .2s, box-shadow .2s;
+  touch-action: manipulation;
+}
+#plip-stage, #plip-stage > svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.plip-bubble {
+  display: none;
+  position: absolute;
+  top: calc(100% - 5px);
+  left: 0;
+  width: 100%;
+  z-index: 50;
+  padding: 0 1px;
+  pointer-events: none;
+}
+.plip-bubble svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+@keyframes plipNobleFloatSVG {
+  0%, 100% { transform: translate3d(0,0,0) rotate(.001deg); }
+  50% { transform: translate3d(0,2px,0) rotate(.001deg); }
+}
+@keyframes plipRainbowTextSVG {
+  0% { fill: #ff0055; filter: drop-shadow(0 0 3px rgba(255,0,85,.5)); }
+  14% { fill: #ff5500; }
+  28% { fill: #ffcc00; }
+  42% { fill: #00ff66; }
+  56% { fill: #00ccff; }
+  70% { fill: #3333ff; }
+  84% { fill: #9900ff; }
+  100% { fill: #ff0055; filter: drop-shadow(0 0 3px rgba(255,0,85,.5)); }
+}
+@keyframes plipBoltFlashSVG {
+  0%, 100% { opacity: .85; filter: drop-shadow(0 0 1px #fde047); }
+  50% { opacity: 1; filter: drop-shadow(0 0 5px #fde047); }
+}
+.animated-bubble-container-svg {
+  animation: plipNobleFloatSVG 3s infinite ease-in-out;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.rainbow-bulb-svg { animation: plipRainbowTextSVG 7s linear infinite; }
+.flashing-bolt-svg { animation: plipBoltFlashSVG 1.5s infinite ease-in-out; }
+.effect-press { animation: effectPress .26s ease-out; }
+.effect-pulse { animation: effectPulse .42s ease-out; }
+.effect-glow { animation: effectGlow .55s ease-out; }
+.effect-shake { animation: effectShake .42s ease-out; }
+.effect-flash { animation: effectFlash .42s ease-out; }
+@keyframes effectPress {
+  0% { transform: scale(1) translateY(0); }
+  45% { transform: scale(.94) translateY(8px); filter: brightness(1.25); }
+  100% { transform: scale(1) translateY(0); }
+}
+@keyframes effectPulse {
+  0% { transform: scale(1); }
+  42% { transform: scale(1.06); }
+  100% { transform: scale(1); }
+}
+@keyframes effectGlow {
+  0% { filter: brightness(1); }
+  45% { filter: brightness(1.8) saturate(1.35); }
+  100% { filter: brightness(1); }
+}
+@keyframes effectShake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-10px) rotate(-1deg); }
+  40% { transform: translateX(9px) rotate(1deg); }
+  60% { transform: translateX(-6px); }
+  80% { transform: translateX(4px); }
+}
+@keyframes effectFlash {
+  0% { opacity: 1; }
+  35% { opacity: .18; filter: brightness(2.5); }
+  100% { opacity: 1; }
+}
+#plip-toast {
+  display: none;
+  position: fixed;
+  top: 18px;
+  right: 18px;
+  z-index: 1000;
+  max-width: min(390px, calc(100vw - 36px));
+  padding: 12px 15px;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  background: #0f172a;
+  color: #f8fafc;
+  box-shadow: 0 14px 35px rgba(0,0,0,.45);
+  opacity: 0;
+  transform: translateY(-16px);
+  pointer-events: none;
+  transition: .25s;
+  font-size: 14px;
+}
+#plip-toast.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+</style>
+</head>
+<body>
+<div class="plip-wrap">
+  <button id="plip-core-button" type="button" aria-label="PLIP 3段階連動ボタン">
+    <span id="plip-stage"></span>
+  </button>
+  <div class="plip-bubble" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 35">
+            <g class="animated-bubble-container-svg" shape-rendering="geometricPrecision" text-rendering="geometricPrecision">
+              <path d="M 6 8 H 42 L 48 3 L 54 8 H 90 A 4 4 0 0 1 94 12 V 29 A 4 4 0 0 1 90 33 H 6 A 4 4 0 0 1 2 29 V 12 A 4 4 0 0 1 6 8 Z" fill="#151d30" stroke="#f59e0b" stroke-width="1.2" stroke-opacity="0.85" filter="drop-shadow(0 3px 6px rgba(0,0,0,0.4))"></path>
+              <g transform="translate(6, 11) scale(0.85)">
+                <g stroke="#fbbf24" stroke-linecap="round" stroke-width="1.2" opacity="0.55">
+                  <line x1="8" y1="1" x2="8" y2="3"></line>
+                  <line x1="3" y1="3" x2="4.5" y2="4.5"></line>
+                  <line x1="1" y1="8" x2="3" y2="8"></line>
+                  <line x1="3" y1="13" x2="4.5" y2="11.5"></line>
+                  <line x1="13" y1="11.5" x2="11.5" y2="10"></line>
+                  <line x1="15" y1="8" x2="13" y2="8"></line>
+                  <line x1="13" y1="3" x2="11.5" y2="4.5"></line>
+                </g>
+                <path class="rainbow-bulb-svg" d="M8,2 C4.7,2 2,4.7 2,8 C2,10.1 3.1,11.2 4,12.1 C4.6,12.7 4.7,13.2 4.7,13.8 L11.3,13.8 C11.3,13.2 11.4,12.7 12,12.1 C12.9,11.2 14,10.1 14,8 C14,4.7 11.3,2 8,2 Z" fill="#94a3b8"></path>
+                <path d="M5.5,9.5 L7,6.5 L9,6.5 L10.5,9.5" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.95" style="filter:drop-shadow(0 0 1px #fff)"></path>
+                <path d="M4.7,13.8 H11.3 V15.5 C11.3,16 10.9,16.5 10.3,16.5 H5.7 C5.1,16.5 4.7,16 4.7,15.5 Z" fill="#94a3b8" stroke="#334155" stroke-width="0.5"></path>
+                <path d="M5.5,16.5 H10.5 V17.5 C10.5,18 10,18.5 9.5,18.5 H6.5 C6,18.5 5.5,18 5.5,17.5 Z" fill="#475569"></path>
+                <line x1="5" y1="14.8" x2="11" y2="14.8" stroke="#334155" stroke-width="0.8"></line>
+                <line x1="5.3" y1="15.8" x2="10.7" y2="15.8" stroke="#334155" stroke-width="0.8"></line>
+                <polygon class="flashing-bolt-svg" points="16,0.5 8,8.5 12,8.5 10,15.5 18,6.5 14,6.5" fill="#fde047"></polygon>
+              </g>
+              <text x="58" y="24" fill="#fbbf24" font-family="Arial,'Yu Gothic UI',Meiryo,sans-serif" font-size="11" font-weight="900" letter-spacing="0.03em" text-anchor="middle">PLIP !!</text>
+            </g>
+          </svg>
+        </div>
+</div>
+<div id="plip-toast" role="status"></div>
+<script>
+(() => {
+  const STATES = [{"svg":"\u003csvg style=\"width:100%;height:100%;display:block\" preserveAspectRatio=\"xMidYMid meet\"  viewBox=\"0 0 360 360\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n  \n      \u003cdefs>\n        \u003c!-- ゴールドフレーム -->\n        \u003clinearGradient id=\"gold\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFD700\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#FCD34D\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#B45309\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- プラチナフレーム -->\n        \u003clinearGradient id=\"platinum\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFFFF\"/>\n          \u003cstop offset=\"45%\" stop-color=\"#E2E8F0\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#94A3B8\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#475569\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- ルビーフレーム -->\n        \u003clinearGradient id=\"ruby\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FDA4AF\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#E11D48\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#4C0519\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- サファイアフレーム -->\n        \u003clinearGradient id=\"sapphire\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#7DD3FC\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#0284C7\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0F172A\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアム白金（プラチナ）グラデーション -->\n        \u003clinearGradient id=\"platinumText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFFFF\"/>\n          \u003cstop offset=\"30%\" stop-color=\"#F8FAFC\"/>\n          \u003cstop offset=\"65%\" stop-color=\"#CBD5E1\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#475569\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムゴールドグラデーション -->\n        \u003clinearGradient id=\"goldText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFF9E6\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#FCD34D\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#D97706\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#78350F\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムルビーグラデーション -->\n        \u003clinearGradient id=\"rubyText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFE4E6\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#FB7185\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#E11D48\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#4C0519\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムサファイアグラデーション -->\n        \u003clinearGradient id=\"sapphireText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#F0F9FF\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#38BDF8\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#0284C7\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0F172A\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- コンテナ背景用グラデーション -->\n        \u003clinearGradient id=\"spaceBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#0f172a\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#020617\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"velvetBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#450a0a\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#090d16\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"forestBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#062f22\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#020806\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 各種ジュエルの輝きアニメーション用グラデーション -->\n        \u003clinearGradient id=\"gemShine\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFCE0\"/>\n          \u003cstop offset=\"40%\" stop-color=\"#FFE27A\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#C0A060\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"4s\" repeatCount=\"indefinite\"/>\n          \u003canimate attributeName=\"y1\" values=\"0;1;0\" dur=\"4s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemBlue\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#E0F2FE\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#38BDF8\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0369A1\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"4.5s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemRed\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFE4E6\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#FB7185\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#BE123C\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"3.8s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemGreen\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#DCFCE7\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#4ADE80\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#15803D\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"5s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n      \u003c/defs>\n  \n  \u003c!-- 動的コンテナ背景層 -->\n  \n  \n  \u003c!-- 妖艶モード専用エフェクト -->\n  \n  \n  \u003c!-- 「尽生」の文字（動的材質グラデーション & 動的フォント） -->\n  \u003ctext x=\"50\" y=\"215\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"96\" font-weight=\"900\" text-anchor=\"middle\" filter=\"drop-shadow(0px 3px 5px rgba(0,0,0,0.85))\">尽\u003c/text>\n  \u003ctext x=\"310\" y=\"215\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"96\" font-weight=\"900\" text-anchor=\"middle\" filter=\"drop-shadow(0px 3px 5px rgba(0,0,0,0.85))\">生\u003c/text>\n  \n  \u003c!-- 砂時計のガラス内部背景（黒固定） -->\n  \u003cpath d=\"M130,50 C180,120 180,160 130,230 L130,280 L230,280 L230,230 C180,160 180,120 230,50 Z\" fill=\"#090D16\" filter=\"drop-shadow(0px 4px 10px rgba(0,0,0,0.5))\"/>\n  \n  \u003c!-- ガラスのリアルな反射光 -->\n  \n        \u003cpath d=\"M140,60 Q180,100 180,130\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" opacity=\"0.3\" stroke-linecap=\"round\"/>\n        \u003cpath d=\"M220,270 Q180,230 180,200\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"1.5\" opacity=\"0.2\" stroke-linecap=\"round\"/>\n      \n  \n  \u003c!-- 砂時計の台座＆支柱（動的マテリアル & シェイプ） -->\n  \u003crect x=\"100\" y=\"20\" width=\"160\" height=\"30\" rx=\"15\" fill=\"url(#gold)\"/>\n  \u003crect x=\"100\" y=\"310\" width=\"160\" height=\"30\" rx=\"15\" fill=\"url(#gold)\"/>\n  \u003crect x=\"111\" y=\"50\" width=\"10\" height=\"260\" rx=\"5\" fill=\"url(#gold)\"/>\n  \u003crect x=\"240\" y=\"50\" width=\"10\" height=\"260\" rx=\"5\" fill=\"url(#gold)\"/>\n  \n  \u003c!-- ガラス外枠曲線 -->\n  \u003cpath d=\"M130,50 C180,120 180,160 130,230 L130,280 C120,220 120,180 130,120 Z\" fill=\"none\" stroke=\"url(#gold)\" stroke-width=\"5\"/>\n  \u003cpath d=\"M230,50 C180,120 180,160 230,230 L230,280 C240,220 240,180 230,120 Z\" fill=\"none\" stroke=\"url(#gold)\" stroke-width=\"5\"/>\n  \n  \u003c!-- 動的アセットレイヤー -->\n  \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"18s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-18,0; 18,45; -12,100; 14.4,155; -18,215\" dur=\"18s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 180 60\" to=\"320 180 60\" dur=\"12.5s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"180\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"18s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                    生\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"20s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-16,0; 16,45; -10.666666666666666,100; 12.8,155; -16,215\" dur=\"20s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 190 60\" to=\"320 190 60\" dur=\"11s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"190\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"20s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                    死\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"22s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-24,0; 24,45; -16,100; 19.200000000000003,155; -24,215\" dur=\"22s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"14s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"22s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                    会\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"22s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-20,0; 20,45; -13.333333333333334,100; 16,155; -20,215\" dur=\"22s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"14s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"22s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                    別\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"22s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-14,0; 14,45; -9.333333333333334,100; 11.200000000000001,155; -14,215\" dur=\"22s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"18.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"22s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                    愛\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"15s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-26,0; 26,45; -17.333333333333332,100; 20.8,155; -26,215\" dur=\"15s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 165 60\" to=\"320 165 60\" dur=\"12.5s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"165\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"15s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                    憎\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"17s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-16,0; 16,45; -10.666666666666666,100; 12.8,155; -16,215\" dur=\"17s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 175 60\" to=\"320 175 60\" dur=\"11s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"175\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"17s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                    育\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"22s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-14,0; 14,45; -9.333333333333334,100; 11.200000000000001,155; -14,215\" dur=\"22s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"18.5s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"22s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                    離\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003ccircle cx=\"180\" cy=\"80\" r=\"5\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"80\" to=\"260\" dur=\"4.2s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"180;185;175;180\" dur=\"4.2s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"200\" cy=\"90\" r=\"4\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"90\" to=\"260\" dur=\"5.1s\" begin=\"0.3s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"200;205;195;200\" dur=\"5.1s\" begin=\"0.3s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"160\" cy=\"70\" r=\"4\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"70\" to=\"260\" dur=\"3.7s\" begin=\"0.6s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"160;165;155;160\" dur=\"3.7s\" begin=\"0.6s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"170\" cy=\"95\" r=\"3\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"95\" to=\"260\" dur=\"4.8s\" begin=\"0.9s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"170;175;165;170\" dur=\"4.8s\" begin=\"0.9s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"5.2s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"180,85 188,92 188,102 180,109 172,102 172,92\" fill=\"url(#gemShine)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 180 97\" to=\"720 180 97\" dur=\"6s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"4.8s\" begin=\"0.5s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"165,90 173,98 165,106 157,98\" fill=\"url(#gemBlue)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 165 98\" to=\"720 165 98\" dur=\"6s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"5.5s\" begin=\"1.0s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"200,105 207,112 200,122 193,112\" fill=\"url(#gemRed)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 200 117\" to=\"720 200 117\" dur=\"6s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"5.1s\" begin=\"1.5s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"185,120 192,127 185,134 178,127\" fill=\"url(#gemGreen)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 185 127\" to=\"720 185 127\" dur=\"6s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n          \u003cg>\n            \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 210\" dur=\"12s\" begin=\"3s\" repeatCount=\"indefinite\"/>\n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-15,0; 20,70; -5,140; 15,210\" dur=\"12s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 175 65\" to=\"360 175 65\" dur=\"6s\" repeatCount=\"indefinite\"/>\n                \u003cpath d=\"M175,55 C169.5,55 165,59.5 165,65 C165,69.5 168,73.2 172,74.5 L172,85 L177,85 L177,81 L180,81 L180,78 L177,78 L177,74.5 C181,73.2 184,69.5 184,65 C184,59.5 179.5,55 175,55 Z M175,59 C178.3,59 181,61.7 181,65 C181,68.3 178.3,71 175,71 C171.7,71 169,68.3 169,65 C169,61.7 171.7,59 175,59 Z\" fill=\"url(#gold)\"/>\n              \u003c/g>\n            \u003c/g>\n          \u003c/g>\n        \n          \u003cg>\n            \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 210\" dur=\"20s\" begin=\"6s\" repeatCount=\"indefinite\"/>\n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"15,0; -25,50; 20,110; -15,160; 5,210\" dur=\"20s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" values=\"-20 180 57; 30 180 57; -30 180 57; 15 180 57; -20 180 57\" dur=\"5s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003canimate attributeName=\"opacity\" values=\"0; 0.2; 0.9; 1; 0.7; 1; 0.3; 0\" dur=\"6s\" repeatCount=\"indefinite\"/>\n                  \u003cpath d=\"M180,68 C178.5,66.3 172,59.5 172,54.4 C172,50.6 174.9,47.6 178.8,47.6 C180.9,47.6 182.2,48.9 183,49.7 C183.8,48.9 185.1,47.6 187.2,47.6 C191.1,47.6 194,50.6 194,54.4 C194,59.5 187.5,66.3 186,68 L183,70.5 Z\" fill=\"url(#gemRed)\"/>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \u003c/g>\n        \n          \u003crect x=\"190\" y=\"60\" width=\"20\" height=\"10\" fill=\"#A0FFB0\" rx=\"2\">\n            \u003canimate attributeName=\"x\" values=\"190;195;190;185;190\" dur=\"5s\" begin=\"0.4s\" repeatCount=\"indefinite\"/>\n            \u003canimate attributeName=\"y\" from=\"60\" to=\"260\" dur=\"5s\" begin=\"0.4s\" repeatCount=\"indefinite\"/>\n          \u003c/rect>\n          \u003crect x=\"150\" y=\"85\" width=\"20\" height=\"10\" fill=\"#A0FFB0\" rx=\"2\">\n            \u003canimate attributeName=\"x\" values=\"150;155;150;145;150\" dur=\"5.4s\" begin=\"1.1s\" repeatCount=\"indefinite\"/>\n            \u003canimate attributeName=\"y\" from=\"85\" to=\"260\" dur=\"5.4s\" begin=\"1.1s\" repeatCount=\"indefinite\"/>\n          \u003c/rect>\n        \n\u003c/svg>","color":"#FFEA70","musicMode":"ambient"},{"svg":"\u003csvg style=\"width:100%;height:100%;display:block\" preserveAspectRatio=\"xMidYMid meet\"  viewBox=\"0 0 360 360\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n  \n      \u003cdefs>\n        \u003c!-- ゴールドフレーム -->\n        \u003clinearGradient id=\"gold\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFD700\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#FCD34D\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#B45309\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- プラチナフレーム -->\n        \u003clinearGradient id=\"platinum\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFFFF\"/>\n          \u003cstop offset=\"45%\" stop-color=\"#E2E8F0\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#94A3B8\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#475569\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- ルビーフレーム -->\n        \u003clinearGradient id=\"ruby\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FDA4AF\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#E11D48\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#4C0519\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- サファイアフレーム -->\n        \u003clinearGradient id=\"sapphire\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#7DD3FC\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#0284C7\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0F172A\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアム白金（プラチナ）グラデーション -->\n        \u003clinearGradient id=\"platinumText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFFFF\"/>\n          \u003cstop offset=\"30%\" stop-color=\"#F8FAFC\"/>\n          \u003cstop offset=\"65%\" stop-color=\"#CBD5E1\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#475569\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムゴールドグラデーション -->\n        \u003clinearGradient id=\"goldText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFF9E6\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#FCD34D\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#D97706\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#78350F\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムルビーグラデーション -->\n        \u003clinearGradient id=\"rubyText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFE4E6\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#FB7185\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#E11D48\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#4C0519\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムサファイアグラデーション -->\n        \u003clinearGradient id=\"sapphireText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#F0F9FF\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#38BDF8\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#0284C7\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0F172A\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- コンテナ背景用グラデーション -->\n        \u003clinearGradient id=\"spaceBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#0f172a\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#020617\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"velvetBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#450a0a\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#090d16\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"forestBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#062f22\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#020806\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 各種ジュエルの輝きアニメーション用グラデーション -->\n        \u003clinearGradient id=\"gemShine\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFCE0\"/>\n          \u003cstop offset=\"40%\" stop-color=\"#FFE27A\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#C0A060\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"1.4285714285714286s\" repeatCount=\"indefinite\"/>\n          \u003canimate attributeName=\"y1\" values=\"0;1;0\" dur=\"1.4285714285714286s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemBlue\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#E0F2FE\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#38BDF8\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0369A1\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"1.6071428571428572s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemRed\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFE4E6\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#FB7185\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#BE123C\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"1.3571428571428572s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemGreen\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#DCFCE7\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#4ADE80\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#15803D\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"1.7857142857142858s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n      \u003c/defs>\n  \n  \u003c!-- 動的コンテナ背景層 -->\n  \n  \n  \u003c!-- 妖艶モード専用エフェクト -->\n  \n  \n  \u003c!-- 「尽生」の文字（動的材質グラデーション & 動的フォント） -->\n  \u003ctext x=\"50\" y=\"215\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"96\" font-weight=\"900\" text-anchor=\"middle\" filter=\"drop-shadow(0px 3px 5px rgba(0,0,0,0.85))\">尽\u003c/text>\n  \u003ctext x=\"310\" y=\"215\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"96\" font-weight=\"900\" text-anchor=\"middle\" filter=\"drop-shadow(0px 3px 5px rgba(0,0,0,0.85))\">生\u003c/text>\n  \n  \u003c!-- 砂時計のガラス内部背景（黒固定） -->\n  \u003cpath d=\"M130,50 C180,120 180,160 130,230 L130,280 L230,280 L230,230 C180,160 180,120 230,50 Z\" fill=\"#090D16\" filter=\"drop-shadow(0px 4px 10px rgba(0,0,0,0.5))\"/>\n  \n  \u003c!-- ガラスのリアルな反射光 -->\n  \n        \u003cpath d=\"M140,60 Q180,100 180,130\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" opacity=\"0.3\" stroke-linecap=\"round\"/>\n        \u003cpath d=\"M220,270 Q180,230 180,200\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"1.5\" opacity=\"0.2\" stroke-linecap=\"round\"/>\n      \n  \n  \u003c!-- 砂時計の台座＆支柱（動的マテリアル & シェイプ） -->\n  \u003crect x=\"100\" y=\"20\" width=\"160\" height=\"30\" rx=\"15\" fill=\"url(#gold)\"/>\n  \u003crect x=\"100\" y=\"310\" width=\"160\" height=\"30\" rx=\"15\" fill=\"url(#gold)\"/>\n  \u003crect x=\"111\" y=\"50\" width=\"10\" height=\"260\" rx=\"5\" fill=\"url(#gold)\"/>\n  \u003crect x=\"240\" y=\"50\" width=\"10\" height=\"260\" rx=\"5\" fill=\"url(#gold)\"/>\n  \n  \u003c!-- ガラス外枠曲線 -->\n  \u003cpath d=\"M130,50 C180,120 180,160 130,230 L130,280 C120,220 120,180 130,120 Z\" fill=\"none\" stroke=\"url(#gold)\" stroke-width=\"5\"/>\n  \u003cpath d=\"M230,50 C180,120 180,160 230,230 L230,280 C240,220 240,180 230,120 Z\" fill=\"none\" stroke=\"url(#gold)\" stroke-width=\"5\"/>\n  \n  \u003c!-- 動的アセットレイヤー -->\n  \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"6.428571428571429s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-18,0; 18,45; -12,100; 14.4,155; -18,215\" dur=\"6.428571428571429s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 180 60\" to=\"320 180 60\" dur=\"4.464285714285714s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"180\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"6.428571428571429s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                    生\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"7.142857142857143s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-16,0; 16,45; -10.666666666666666,100; 12.8,155; -16,215\" dur=\"7.142857142857143s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 190 60\" to=\"320 190 60\" dur=\"3.928571428571429s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"190\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"7.142857142857143s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                    死\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"7.857142857142858s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-24,0; 24,45; -16,100; 19.200000000000003,155; -24,215\" dur=\"7.857142857142858s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"5s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"7.857142857142858s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                    会\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"7.857142857142858s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-20,0; 20,45; -13.333333333333334,100; 16,155; -20,215\" dur=\"7.857142857142858s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"7.857142857142858s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                    別\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"7.857142857142858s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-14,0; 14,45; -9.333333333333334,100; 11.200000000000001,155; -14,215\" dur=\"7.857142857142858s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"6.607142857142858s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"7.857142857142858s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                    愛\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"5.357142857142858s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-26,0; 26,45; -17.333333333333332,100; 20.8,155; -26,215\" dur=\"5.357142857142858s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 165 60\" to=\"320 165 60\" dur=\"4.464285714285714s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"165\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"5.357142857142858s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                    憎\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"6.071428571428572s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-16,0; 16,45; -10.666666666666666,100; 12.8,155; -16,215\" dur=\"6.071428571428572s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 175 60\" to=\"320 175 60\" dur=\"3.928571428571429s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"175\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"6.071428571428572s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                    育\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"7.857142857142858s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-14,0; 14,45; -9.333333333333334,100; 11.200000000000001,155; -14,215\" dur=\"7.857142857142858s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"6.607142857142858s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"7.857142857142858s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                    離\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003ccircle cx=\"180\" cy=\"80\" r=\"5\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"80\" to=\"260\" dur=\"1.5000000000000002s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"180;185;175;180\" dur=\"1.5000000000000002s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"200\" cy=\"90\" r=\"4\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"90\" to=\"260\" dur=\"1.8214285714285714s\" begin=\"0.3s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"200;205;195;200\" dur=\"1.8214285714285714s\" begin=\"0.3s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"160\" cy=\"70\" r=\"4\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"70\" to=\"260\" dur=\"1.3214285714285716s\" begin=\"0.6s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"160;165;155;160\" dur=\"1.3214285714285716s\" begin=\"0.6s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"170\" cy=\"95\" r=\"3\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"95\" to=\"260\" dur=\"1.7142857142857144s\" begin=\"0.9s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"170;175;165;170\" dur=\"1.7142857142857144s\" begin=\"0.9s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"190\" cy=\"85\" r=\"4.5\" fill=\"#FFE066\">\n              \u003canimate attributeName=\"cy\" from=\"85\" to=\"260\" dur=\"1.4285714285714286s\" begin=\"1.2s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"190;195;185;190\" dur=\"1.4285714285714286s\" begin=\"1.2s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"1.8571428571428574s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"180,85 188,92 188,102 180,109 172,102 172,92\" fill=\"url(#gemShine)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 180 97\" to=\"720 180 97\" dur=\"2.142857142857143s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"1.7142857142857144s\" begin=\"0.5s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"165,90 173,98 165,106 157,98\" fill=\"url(#gemBlue)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 165 98\" to=\"720 165 98\" dur=\"2.142857142857143s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"1.9642857142857144s\" begin=\"1.0s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"200,105 207,112 200,122 193,112\" fill=\"url(#gemRed)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 200 117\" to=\"720 200 117\" dur=\"2.142857142857143s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"1.8214285714285714s\" begin=\"1.5s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"185,120 192,127 185,134 178,127\" fill=\"url(#gemGreen)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 185 127\" to=\"720 185 127\" dur=\"2.142857142857143s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n          \u003cg>\n            \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 210\" dur=\"4.285714285714286s\" begin=\"3s\" repeatCount=\"indefinite\"/>\n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-15,0; 20,70; -5,140; 15,210\" dur=\"4.285714285714286s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 175 65\" to=\"360 175 65\" dur=\"2.142857142857143s\" repeatCount=\"indefinite\"/>\n                \u003cpath d=\"M175,55 C169.5,55 165,59.5 165,65 C165,69.5 168,73.2 172,74.5 L172,85 L177,85 L177,81 L180,81 L180,78 L177,78 L177,74.5 C181,73.2 184,69.5 184,65 C184,59.5 179.5,55 175,55 Z M175,59 C178.3,59 181,61.7 181,65 C181,68.3 178.3,71 175,71 C171.7,71 169,68.3 169,65 C169,61.7 171.7,59 175,59 Z\" fill=\"url(#gold)\"/>\n              \u003c/g>\n            \u003c/g>\n          \u003c/g>\n        \n          \u003cg>\n            \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 210\" dur=\"7.142857142857143s\" begin=\"6s\" repeatCount=\"indefinite\"/>\n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"15,0; -25,50; 20,110; -15,160; 5,210\" dur=\"7.142857142857143s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" values=\"-20 180 57; 30 180 57; -30 180 57; 15 180 57; -20 180 57\" dur=\"1.7857142857142858s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003canimate attributeName=\"opacity\" values=\"0; 0.2; 0.9; 1; 0.7; 1; 0.3; 0\" dur=\"2.142857142857143s\" repeatCount=\"indefinite\"/>\n                  \u003cpath d=\"M180,68 C178.5,66.3 172,59.5 172,54.4 C172,50.6 174.9,47.6 178.8,47.6 C180.9,47.6 182.2,48.9 183,49.7 C183.8,48.9 185.1,47.6 187.2,47.6 C191.1,47.6 194,50.6 194,54.4 C194,59.5 187.5,66.3 186,68 L183,70.5 Z\" fill=\"url(#gemRed)\"/>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \u003c/g>\n        \n          \u003crect x=\"190\" y=\"60\" width=\"20\" height=\"10\" fill=\"#A0FFB0\" rx=\"2\">\n            \u003canimate attributeName=\"x\" values=\"190;195;190;185;190\" dur=\"1.7857142857142858s\" begin=\"0.4s\" repeatCount=\"indefinite\"/>\n            \u003canimate attributeName=\"y\" from=\"60\" to=\"260\" dur=\"1.7857142857142858s\" begin=\"0.4s\" repeatCount=\"indefinite\"/>\n          \u003c/rect>\n          \u003crect x=\"150\" y=\"85\" width=\"20\" height=\"10\" fill=\"#A0FFB0\" rx=\"2\">\n            \u003canimate attributeName=\"x\" values=\"150;155;150;145;150\" dur=\"1.9285714285714288s\" begin=\"1.1s\" repeatCount=\"indefinite\"/>\n            \u003canimate attributeName=\"y\" from=\"85\" to=\"260\" dur=\"1.9285714285714288s\" begin=\"1.1s\" repeatCount=\"indefinite\"/>\n          \u003c/rect>\n        \n\u003c/svg>","color":"#E2E8F0","musicMode":"theme"},{"svg":"\u003csvg style=\"width:100%;height:100%;display:block\" preserveAspectRatio=\"xMidYMid meet\"  viewBox=\"0 0 360 360\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\">\n  \n      \u003cdefs>\n        \u003c!-- ゴールドフレーム -->\n        \u003clinearGradient id=\"gold\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFD700\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#FCD34D\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#B45309\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- プラチナフレーム -->\n        \u003clinearGradient id=\"platinum\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFFFF\"/>\n          \u003cstop offset=\"45%\" stop-color=\"#E2E8F0\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#94A3B8\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#475569\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- ルビーフレーム -->\n        \u003clinearGradient id=\"ruby\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FDA4AF\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#E11D48\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#4C0519\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- サファイアフレーム -->\n        \u003clinearGradient id=\"sapphire\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#7DD3FC\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#0284C7\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0F172A\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアム白金（プラチナ）グラデーション -->\n        \u003clinearGradient id=\"platinumText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFFFF\"/>\n          \u003cstop offset=\"30%\" stop-color=\"#F8FAFC\"/>\n          \u003cstop offset=\"65%\" stop-color=\"#CBD5E1\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#475569\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムゴールドグラデーション -->\n        \u003clinearGradient id=\"goldText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFF9E6\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#FCD34D\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#D97706\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#78350F\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムルビーグラデーション -->\n        \u003clinearGradient id=\"rubyText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFE4E6\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#FB7185\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#E11D48\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#4C0519\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 文字用のプレミアムサファイアグラデーション -->\n        \u003clinearGradient id=\"sapphireText\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#F0F9FF\"/>\n          \u003cstop offset=\"35%\" stop-color=\"#38BDF8\"/>\n          \u003cstop offset=\"70%\" stop-color=\"#0284C7\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0F172A\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- コンテナ背景用グラデーション -->\n        \u003clinearGradient id=\"spaceBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#0f172a\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#020617\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"velvetBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#450a0a\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#090d16\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"forestBg\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#062f22\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#020806\"/>\n        \u003c/linearGradient>\n\n        \u003c!-- 各種ジュエルの輝きアニメーション用グラデーション -->\n        \u003clinearGradient id=\"gemShine\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFFCE0\"/>\n          \u003cstop offset=\"40%\" stop-color=\"#FFE27A\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#C0A060\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"5s\" repeatCount=\"indefinite\"/>\n          \u003canimate attributeName=\"y1\" values=\"0;1;0\" dur=\"5s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemBlue\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#E0F2FE\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#38BDF8\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#0369A1\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"5.625s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemRed\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#FFE4E6\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#FB7185\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#BE123C\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"4.749999999999999s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n        \u003clinearGradient id=\"gemGreen\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\">\n          \u003cstop offset=\"0%\" stop-color=\"#DCFCE7\"/>\n          \u003cstop offset=\"50%\" stop-color=\"#4ADE80\"/>\n          \u003cstop offset=\"100%\" stop-color=\"#15803D\"/>\n          \u003canimate attributeName=\"x1\" values=\"0;1;0\" dur=\"6.25s\" repeatCount=\"indefinite\"/>\n        \u003c/linearGradient>\n      \u003c/defs>\n  \n  \u003c!-- 動的コンテナ背景層 -->\n  \n  \n  \u003c!-- 妖艶モード専用エフェクト -->\n  \n  \n  \u003c!-- 「尽生」の文字（動的材質グラデーション & 動的フォント） -->\n  \u003ctext x=\"50\" y=\"215\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"96\" font-weight=\"900\" text-anchor=\"middle\" filter=\"drop-shadow(0px 3px 5px rgba(0,0,0,0.85))\">尽\u003c/text>\n  \u003ctext x=\"310\" y=\"215\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"96\" font-weight=\"900\" text-anchor=\"middle\" filter=\"drop-shadow(0px 3px 5px rgba(0,0,0,0.85))\">生\u003c/text>\n  \n  \u003c!-- 砂時計のガラス内部背景（黒固定） -->\n  \u003cpath d=\"M130,50 C180,120 180,160 130,230 L130,280 L230,280 L230,230 C180,160 180,120 230,50 Z\" fill=\"#090D16\" filter=\"drop-shadow(0px 4px 10px rgba(0,0,0,0.5))\"/>\n  \n  \u003c!-- ガラスのリアルな反射光 -->\n  \n        \u003cpath d=\"M140,60 Q180,100 180,130\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"2.5\" opacity=\"0.3\" stroke-linecap=\"round\"/>\n        \u003cpath d=\"M220,270 Q180,230 180,200\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"1.5\" opacity=\"0.2\" stroke-linecap=\"round\"/>\n      \n  \n  \u003c!-- 砂時計の台座＆支柱（動的マテリアル & シェイプ） -->\n  \u003crect x=\"100\" y=\"20\" width=\"160\" height=\"30\" rx=\"15\" fill=\"url(#gold)\"/>\n  \u003crect x=\"100\" y=\"310\" width=\"160\" height=\"30\" rx=\"15\" fill=\"url(#gold)\"/>\n  \u003crect x=\"111\" y=\"50\" width=\"10\" height=\"260\" rx=\"5\" fill=\"url(#gold)\"/>\n  \u003crect x=\"240\" y=\"50\" width=\"10\" height=\"260\" rx=\"5\" fill=\"url(#gold)\"/>\n  \n  \u003c!-- ガラス外枠曲線 -->\n  \u003cpath d=\"M130,50 C180,120 180,160 130,230 L130,280 C120,220 120,180 130,120 Z\" fill=\"none\" stroke=\"url(#gold)\" stroke-width=\"5\"/>\n  \u003cpath d=\"M230,50 C180,120 180,160 230,230 L230,280 C240,220 240,180 230,120 Z\" fill=\"none\" stroke=\"url(#gold)\" stroke-width=\"5\"/>\n  \n  \u003c!-- 動的アセットレイヤー -->\n  \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"22.5s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-18,0; 18,45; -12,100; 14.4,155; -18,215\" dur=\"22.5s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 180 60\" to=\"320 180 60\" dur=\"15.625s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"180\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"22.5s\" begin=\"6.0s\" repeatCount=\"indefinite\"/>\n                    生\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"25s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-16,0; 16,45; -10.666666666666666,100; 12.8,155; -16,215\" dur=\"25s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 190 60\" to=\"320 190 60\" dur=\"13.75s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"190\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"25s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                    死\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"27.5s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-24,0; 24,45; -16,100; 19.200000000000003,155; -24,215\" dur=\"27.5s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"17.5s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"27.5s\" begin=\"7.2s\" repeatCount=\"indefinite\"/>\n                    会\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"27.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-20,0; 20,45; -13.333333333333334,100; 16,155; -20,215\" dur=\"27.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"17.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"27.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                    別\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"27.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-14,0; 14,45; -9.333333333333334,100; 11.200000000000001,155; -14,215\" dur=\"27.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"23.125s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"27.5s\" begin=\"12.0s\" repeatCount=\"indefinite\"/>\n                    愛\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"18.75s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-26,0; 26,45; -17.333333333333332,100; 20.8,155; -26,215\" dur=\"18.75s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 165 60\" to=\"320 165 60\" dur=\"15.625s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"165\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"18.75s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n                    憎\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"21.25s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-16,0; 16,45; -10.666666666666666,100; 12.8,155; -16,215\" dur=\"21.25s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 175 60\" to=\"320 175 60\" dur=\"13.75s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"175\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"21.25s\" begin=\"9.6s\" repeatCount=\"indefinite\"/>\n                    育\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003cg>\n              \u003c!-- 縦方向の超低速・優雅な落下（translateY） -->\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 215\" dur=\"27.5s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003c!-- 横方向の木の葉が舞うようなひらひらしたスイング（translateX） -->\n                \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-14,0; 14,45; -9.333333333333334,100; 11.200000000000001,155; -14,215\" dur=\"27.5s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003c!-- ゆっくりとした自転回転（自転軸は文字固有の座標） -->\n                  \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"-40 200 60\" to=\"320 200 60\" dur=\"23.125s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                  \n                  \u003c!-- 文字描画（フェードイン・アウトのアニメーション付き） -->\n                  \u003ctext x=\"200\" y=\"60\" fill=\"url(#platinumText)\" font-family=\"'Shippori Mincho', serif\" font-size=\"14\" font-weight=\"700\" text-anchor=\"middle\" filter=\"drop-shadow(0px 1px 3px rgba(255,255,255,0.15))\">\n                    \u003canimate attributeName=\"opacity\" values=\"0; 0.95; 0.95; 0.7; 0\" dur=\"27.5s\" begin=\"14.4s\" repeatCount=\"indefinite\"/>\n                    離\n                  \u003c/text>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \n            \u003ccircle cx=\"180\" cy=\"80\" r=\"5\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"80\" to=\"260\" dur=\"5.25s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"180;185;175;180\" dur=\"5.25s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"200\" cy=\"90\" r=\"4\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"90\" to=\"260\" dur=\"6.374999999999999s\" begin=\"0.3s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"200;205;195;200\" dur=\"6.374999999999999s\" begin=\"0.3s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"160\" cy=\"70\" r=\"4\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"70\" to=\"260\" dur=\"4.625s\" begin=\"0.6s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"160;165;155;160\" dur=\"4.625s\" begin=\"0.6s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"170\" cy=\"95\" r=\"3\" fill=\"#FFD700\">\n              \u003canimate attributeName=\"cy\" from=\"95\" to=\"260\" dur=\"5.999999999999999s\" begin=\"0.9s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"170;175;165;170\" dur=\"5.999999999999999s\" begin=\"0.9s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003ccircle cx=\"190\" cy=\"85\" r=\"4.5\" fill=\"#FFE066\">\n              \u003canimate attributeName=\"cy\" from=\"85\" to=\"260\" dur=\"5s\" begin=\"1.2s\" repeatCount=\"indefinite\"/>\n              \u003canimate attributeName=\"cx\" values=\"190;195;185;190\" dur=\"5s\" begin=\"1.2s\" repeatCount=\"indefinite\"/>\n            \u003c/circle>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"6.5s\" begin=\"0.0s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"180,85 188,92 188,102 180,109 172,102 172,92\" fill=\"url(#gemShine)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 180 97\" to=\"720 180 97\" dur=\"7.5s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"5.999999999999999s\" begin=\"0.5s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"165,90 173,98 165,106 157,98\" fill=\"url(#gemBlue)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 165 98\" to=\"720 165 98\" dur=\"7.5s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"6.875s\" begin=\"1.0s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"200,105 207,112 200,122 193,112\" fill=\"url(#gemRed)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 200 117\" to=\"720 200 117\" dur=\"7.5s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 180\" dur=\"6.374999999999999s\" begin=\"1.5s\" repeatCount=\"indefinite\"/>\n              \u003cpolygon points=\"185,120 192,127 185,134 178,127\" fill=\"url(#gemGreen)\">\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 185 127\" to=\"720 185 127\" dur=\"7.5s\" repeatCount=\"indefinite\"/>\n              \u003c/polygon>\n            \u003c/g>\n          \n          \u003cg>\n            \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 210\" dur=\"15s\" begin=\"3s\" repeatCount=\"indefinite\"/>\n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"-15,0; 20,70; -5,140; 15,210\" dur=\"15s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" from=\"0 175 65\" to=\"360 175 65\" dur=\"7.5s\" repeatCount=\"indefinite\"/>\n                \u003cpath d=\"M175,55 C169.5,55 165,59.5 165,65 C165,69.5 168,73.2 172,74.5 L172,85 L177,85 L177,81 L180,81 L180,78 L177,78 L177,74.5 C181,73.2 184,69.5 184,65 C184,59.5 179.5,55 175,55 Z M175,59 C178.3,59 181,61.7 181,65 C181,68.3 178.3,71 175,71 C171.7,71 169,68.3 169,65 C169,61.7 171.7,59 175,59 Z\" fill=\"url(#gold)\"/>\n              \u003c/g>\n            \u003c/g>\n          \u003c/g>\n        \n          \u003cg>\n            \u003canimateTransform attributeName=\"transform\" type=\"translate\" from=\"0 0\" to=\"0 210\" dur=\"25s\" begin=\"6s\" repeatCount=\"indefinite\"/>\n            \u003cg>\n              \u003canimateTransform attributeName=\"transform\" type=\"translate\" values=\"15,0; -25,50; 20,110; -15,160; 5,210\" dur=\"25s\" repeatCount=\"indefinite\"/>\n              \u003cg>\n                \u003canimateTransform attributeName=\"transform\" type=\"rotate\" values=\"-20 180 57; 30 180 57; -30 180 57; 15 180 57; -20 180 57\" dur=\"6.25s\" repeatCount=\"indefinite\"/>\n                \u003cg>\n                  \u003canimate attributeName=\"opacity\" values=\"0; 0.2; 0.9; 1; 0.7; 1; 0.3; 0\" dur=\"7.5s\" repeatCount=\"indefinite\"/>\n                  \u003cpath d=\"M180,68 C178.5,66.3 172,59.5 172,54.4 C172,50.6 174.9,47.6 178.8,47.6 C180.9,47.6 182.2,48.9 183,49.7 C183.8,48.9 185.1,47.6 187.2,47.6 C191.1,47.6 194,50.6 194,54.4 C194,59.5 187.5,66.3 186,68 L183,70.5 Z\" fill=\"url(#gemRed)\"/>\n                \u003c/g>\n              \u003c/g>\n            \u003c/g>\n          \u003c/g>\n        \n          \u003crect x=\"190\" y=\"60\" width=\"20\" height=\"10\" fill=\"#A0FFB0\" rx=\"2\">\n            \u003canimate attributeName=\"x\" values=\"190;195;190;185;190\" dur=\"6.25s\" begin=\"0.4s\" repeatCount=\"indefinite\"/>\n            \u003canimate attributeName=\"y\" from=\"60\" to=\"260\" dur=\"6.25s\" begin=\"0.4s\" repeatCount=\"indefinite\"/>\n          \u003c/rect>\n          \u003crect x=\"150\" y=\"85\" width=\"20\" height=\"10\" fill=\"#A0FFB0\" rx=\"2\">\n            \u003canimate attributeName=\"x\" values=\"150;155;150;145;150\" dur=\"6.75s\" begin=\"1.1s\" repeatCount=\"indefinite\"/>\n            \u003canimate attributeName=\"y\" from=\"85\" to=\"260\" dur=\"6.75s\" begin=\"1.1s\" repeatCount=\"indefinite\"/>\n          \u003c/rect>\n        \n\u003c/svg>","color":"#0D0D0D","musicMode":"silent"}];
+  const TRANSITIONS = [{"sound":"speech","speech":{"text":"Song","rate":1.7,"pitch":1.1,"volume":0.9}},{"sound":"speech","speech":{"text":"Sound-Off","rate":1.8,"pitch":1.6,"volume":1}},{"sound":"speech","speech":{"text":"BGM","rate":1.7,"pitch":1.4,"volume":1}}];
+  const EFFECT = "press";
+  const LINK_MODE = true;
+  const queryParams = new URLSearchParams(window.location.search);
+  const linkCardTitle = queryParams.get("title") || "尽生無双";
+  const requestedMusicBase = queryParams.get("musicBase") || "./music/";
+
+  function musicPath(filename) {
+    const base = requestedMusicBase.endsWith("/")
+      ? requestedMusicBase
+      : requestedMusicBase + "/";
+    return base + filename;
+  }
+
+  let currentState = 0;
+  let managedAudio = null;
+  let toastTimer = null;
+  let sharedAudioContext = null;
+  let themeLoopTimer = null;
+  let musicSessionId = 0;
+
+  const button = document.getElementById("plip-core-button");
+  const stage = document.getElementById("plip-stage");
+  const toast = document.getElementById("plip-toast");
+
+  function showToast(message) {
+    toast.textContent = message;
+    toast.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.remove("show"), 2600);
+  }
+
+  function stopMediaInDocument(targetDocument) {
+    try {
+      targetDocument.querySelectorAll("audio, video").forEach(media => {
+        try {
+          media.pause();
+          media.currentTime = 0;
+        } catch (_) {}
+      });
+
+      targetDocument.querySelectorAll("[data-plip-managed-audio='true']")
+        .forEach(element => element.remove());
+
+      targetDocument.querySelectorAll("iframe").forEach(frame => {
+        try {
+          frame.contentWindow.postMessage({ type: "PLIP_STOP_AUDIO" }, "*");
+        } catch (_) {}
+      });
+    } catch (_) {}
+  }
+
+  function stopManagedMusic() {
+    musicSessionId += 1;
+
+    if (themeLoopTimer) {
+      clearTimeout(themeLoopTimer);
+      themeLoopTimer = null;
+    }
+
+    if (managedAudio) {
+      try { managedAudio.pause(); } catch (_) {}
+      managedAudio.remove();
+      managedAudio = null;
+    }
+
+    stopMediaInDocument(document);
+
+    // LINK HP側の兄弟ボタン停止は、親ページのpostMessage制御に任せる。
+  }
+
+  function getAudioContext() {
+    const AudioContextClass =
+      window.AudioContext || window.webkitAudioContext;
+
+    if (!AudioContextClass) return null;
+
+    if (!sharedAudioContext || sharedAudioContext.state === "closed") {
+      sharedAudioContext = new AudioContextClass();
+    }
+    return sharedAudioContext;
+  }
+
+  function tone(context, frequency, start, duration,
+                type = "sine", volume = .1) {
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(frequency, start);
+    gain.gain.setValueAtTime(volume, start);
+    gain.gain.exponentialRampToValueAtTime(.0001, start + duration);
+
+    oscillator.connect(gain).connect(context.destination);
+    oscillator.start(start);
+    oscillator.stop(start + duration);
+  }
+
+  function playClickSound(setting) {
+    if (setting.sound === "none") return;
+
+    if (setting.sound === "speech") {
+      if (!("speechSynthesis" in window)) return;
+
+      const utterance = new SpeechSynthesisUtterance(setting.speech.text);
+      utterance.lang = "ja-JP";
+      utterance.rate = setting.speech.rate;
+      utterance.pitch = setting.speech.pitch;
+      utterance.volume = setting.speech.volume;
+      speechSynthesis.speak(utterance);
+      return;
+    }
+
+    const context = getAudioContext();
+    if (!context) return;
+
+    if (context.state === "suspended") {
+      context.resume();
+    }
+
+    const time = context.currentTime;
+
+    if (setting.sound === "click") {
+      tone(context, 850, time, .035, "sine", .12);
+    } else if (setting.sound === "digital") {
+      tone(context, 620, time, .07, "square", .08);
+      tone(context, 980, time + .07, .09, "square", .07);
+    } else if (setting.sound === "confirm") {
+      tone(context, 523.25, time, .10, "sine", .10);
+      tone(context, 783.99, time + .09, .16, "sine", .10);
+    } else if (setting.sound === "metallic") {
+      tone(context, 1300, time, .07, "triangle", .07);
+      tone(context, 1780, time + .018, .11, "triangle", .05);
+    } else if (setting.sound === "impact") {
+      tone(context, 120, time, .16, "sine", .18);
+      tone(context, 65, time + .03, .22, "triangle", .09);
+    } else if (setting.sound === "sparkle") {
+      [880, 1174, 1568, 2093].forEach((frequency, index) => {
+        tone(context, frequency, time + index * .055,
+             .16, "sine", .06);
+      });
+    }
+  }
+
+  function runEffect() {
+    if (EFFECT === "none") return;
+
+    const className = "effect-" + EFFECT;
+    button.classList.remove(className);
+    void button.offsetWidth;
+    button.classList.add(className);
+    button.addEventListener("animationend", () => {
+      button.classList.remove(className);
+    }, { once: true });
+  }
+
+  function createManagedAudio(source, loop = false) {
+    const audio = document.createElement("audio");
+    audio.src = source;
+    audio.loop = loop;
+    audio.volume = .35;
+    audio.preload = "auto";
+    audio.dataset.plipManagedAudio = "true";
+    audio.style.display = "none";
+    document.body.appendChild(audio);
+    managedAudio = audio;
+    return audio;
+  }
+
+  function randomChoice(items) {
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
+  async function playSourceWithFallback(primarySource, fallbackSource, options = {}) {
+    const sessionId = options.sessionId;
+    const loop = Boolean(options.loop);
+    const onEnded = options.onEnded;
+
+    async function attempt(source, isFallback) {
+      if (sessionId !== musicSessionId) return false;
+
+      const audio = createManagedAudio(source, loop);
+
+      if (typeof onEnded === "function") {
+        audio.addEventListener("ended", () => {
+          if (sessionId !== musicSessionId) return;
+          onEnded();
+        }, { once: true });
+      }
+
+      try {
+        await audio.play();
+
+        if (LINK_MODE && currentState === 1 && window.parent && window.parent !== window) {
+          window.parent.postMessage({
+            type: "PLIP_TRACK_PLAYING",
+            title: encodeURIComponent(linkCardTitle),
+            trackUrl: audio.currentSrc || audio.src || source
+          }, "*");
+        }
+
+        return true;
+      } catch (_) {
+        if (managedAudio === audio) {
+          audio.remove();
+          managedAudio = null;
+        }
+
+        if (!isFallback && primarySource !== fallbackSource) {
+          return attempt(fallbackSource, true);
+        }
+        return false;
+      }
+    }
+
+    return attempt(primarySource, false);
+  }
+
+  async function playMusicForState(state) {
+    const sessionId = musicSessionId;
+
+    if (state.musicMode === "silent") {
+      showToast("🔇 音楽をオフにしました");
+      return;
+    }
+
+    if (state.musicMode === "ambient") {
+      const chosen = randomChoice([
+        musicPath("bgm.mp3"),
+        musicPath("bgm1.mp3")
+      ]);
+
+      const played = await playSourceWithFallback(
+        chosen,
+        musicPath("bgm.mp3"),
+        { loop: true, sessionId }
+      );
+
+      if (sessionId !== musicSessionId) return;
+      showToast(played
+        ? "🌿 BGMを再生：" + chosen.split("/").pop()
+        : "⚠️ BGMを再生できません");
+      return;
+    }
+
+    const themeSources = [
+      musicPath("song.mp3"),
+      musicPath("song1.mp3"),
+      musicPath("song2.mp3"),
+      musicPath("song3.mp3"),
+      musicPath("song4.mp3")
+    ];
+
+    const playNextTheme = async () => {
+      if (sessionId !== musicSessionId || currentState !== 1) return;
+
+      const chosen = randomChoice(themeSources);
+      const played = await playSourceWithFallback(
+        chosen,
+        musicPath("song.mp3"),
+        {
+          loop: false,
+          sessionId,
+          onEnded: () => {
+            if (sessionId !== musicSessionId || currentState !== 1) return;
+            themeLoopTimer = setTimeout(() => {
+              themeLoopTimer = null;
+              playNextTheme();
+            }, 3000);
+          }
+        }
+      );
+
+      if (sessionId !== musicSessionId || currentState !== 1) return;
+      showToast(played
+        ? "🎵 主題歌を再生：" + chosen.split("/").pop()
+        : "⚠️ 主題歌を再生できません");
+    };
+
+    await playNextTheme();
+  }
+
+  async function applyState(withSound = true, transitionIndex = 0) {
+    const state = STATES[currentState];
+
+    stage.innerHTML = state.svg;
+    button.style.borderColor = state.color;
+    button.style.boxShadow =
+      "0 0 28px " + state.color +
+      "55, 0 18px 45px rgba(0,0,0,.5)";
+
+    runEffect();
+
+    if (withSound) {
+      stopManagedMusic();
+      playClickSound(TRANSITIONS[transitionIndex]);
+      await playMusicForState(state);
+    }
+  }
+
+  button.addEventListener("click", () => {
+    const transitionIndex = currentState;
+    currentState = (currentState + 1) % STATES.length;
+    applyState(true, transitionIndex);
+
+    if (LINK_MODE && window.parent && window.parent !== window) {
+      window.parent.postMessage({
+        type: "PLIP_BUTTON_CLICK",
+        title: encodeURIComponent(linkCardTitle),
+        stateValue: currentState
+      }, "*");
+    }
+  });
+
+  window.addEventListener("message", event => {
+    if (event.data && event.data.type === "PLIP_STOP_AUDIO") {
+      stopManagedMusic();
+    }
+  });
+
+  applyState(false, 0);
+})();
+</script>
+</body>
+</html>
