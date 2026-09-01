@@ -60,7 +60,10 @@
         ::-webkit-scrollbar-thumb { background: #1f2937; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #374151; }
     </style>
-<meta name="robots" content="index, follow"></head>
+<meta name="robots" content="index, follow"><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-KJCXBBW902" data-plip-google-analytics="yourplip"></script><script id="plip-google-analytics-config" data-plip-google-analytics="yourplip">window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-KJCXBBW902');</script></head>
 <body class="min-h-screen flex flex-col cosmic-radial selection:bg-amber-500/30 selection:text-white antialiased">
 
     <!-- 🛠 コントロールバー -->
@@ -143,7 +146,25 @@
                 <p class="text-[10px] sm:text-[11px] text-slate-400 leading-relaxed">
                     本ページで公開しているIP（知的財産）には著作権が発生しています。作品によっては、特許権・意匠権・商標権その他の権利が発生または出願されている場合があります。権利者の許可なく、転載・複製・改変・配布・商用利用することをお断りいたします。
                 </p>
-            </div>
+            </div><div id="plip-analytics-notice" class="border border-sky-500/20 bg-sky-500/5 rounded-2xl px-5 py-4 text-left">
+                        <p class="text-[11px] sm:text-xs text-sky-200/90 font-bold mb-1.5 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line"></i> アクセス解析について
+                        </p>
+                        <p class="text-[10px] sm:text-[11px] text-slate-400 leading-relaxed">
+                            当サイトでは、利用状況の把握と改善のためGoogle Analyticsを使用しています。
+                        </p>
+                        <details class="mt-2 text-[10px] sm:text-[11px] text-slate-500">
+                            <summary class="cursor-pointer text-sky-300/90 hover:text-sky-200 select-none">詳しく見る</summary>
+                            <div class="mt-2 leading-relaxed space-y-1.5">
+                                <p>Google Analyticsは、Cookie等を利用してアクセス状況に関する情報を収集します。収集された情報はGoogleの規定に基づいて管理されます。</p>
+                                <p>
+                                    <a href="https://policies.google.com/privacy?hl=ja" target="_blank" rel="noopener noreferrer" class="text-sky-300 hover:text-sky-200 underline">
+                                        Google プライバシーポリシー
+                                    </a>
+                                </p>
+                            </div>
+                        </details>
+                    </div>
             <div class="flex flex-col md:flex-row items-center justify-between gap-4 text-slate-500">
                 <p class="text-[11px] font-mono font-semibold">PLIP Hub Portal Collection 2026</p>
                 <p class="text-[10px] md:text-right font-light">© 2026 PLIP &amp; Hiro-Seki-Tech. All rights reserved.</p>
@@ -1556,8 +1577,12 @@ function closeSearchExportModal() {
     if (modal) modal.classList.add('hidden');
 }
 
-// 💾 編集用 / 公開用HTMLを生成。公開用は検索許可・検索除外を選択可能。
-function exportHTML(isForEdit, searchMode = 'index') {
+function getSelectedAnalyticsMode() {
+    return document.querySelector('input[name="export-analytics-mode"]:checked')?.value || 'none';
+}
+
+// 💾 編集用 / 公開用HTMLを生成。公開用は検索設定とGoogle Analyticsの有無を選択可能。
+function exportHTML(isForEdit, searchMode = 'index', analyticsMode = 'none') {
     // 現在のBGMや音声テストを安全に停止
     clearRunningAudio();
 
@@ -1729,6 +1754,67 @@ function exportHTML(isForEdit, searchMode = 'index') {
                     searchMode === 'noindex' ? 'noindex, nofollow, noarchive' : 'index, follow'
                 );
                 cleanDoc.head.appendChild(robotsMeta);
+            }
+
+            // 📊 Google Analytics：公開HTML側だけに反映。既存のPLIP用GAタグと案内は毎回いったん除去。
+            cleanDoc.querySelectorAll(
+                'script[data-plip-google-analytics], #plip-google-analytics-config'
+            ).forEach(el => el.remove());
+            cleanDoc.querySelectorAll('#plip-analytics-notice').forEach(el => el.remove());
+
+            if (!isForEdit && analyticsMode === 'yourplip') {
+                const measurementId = 'G-KJCXBBW902';
+
+                const gaLoader = cleanDoc.createElement('script');
+                gaLoader.async = true;
+                gaLoader.src = `https://www.googletagmanager.com/gtag/js?id=${measurementId}`;
+                gaLoader.setAttribute('data-plip-google-analytics', 'yourplip');
+                cleanDoc.head.appendChild(gaLoader);
+
+                const gaConfig = cleanDoc.createElement('script');
+                gaConfig.id = 'plip-google-analytics-config';
+                gaConfig.setAttribute('data-plip-google-analytics', 'yourplip');
+                gaConfig.textContent = `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', '${measurementId}');
+                `.trim();
+                cleanDoc.head.appendChild(gaConfig);
+
+                const footerInner = cleanDoc.querySelector('footer .max-w-6xl');
+                const rightsNotice = footerInner?.querySelector('.border.border-amber-500\\/20');
+
+                if (footerInner) {
+                    const analyticsNotice = cleanDoc.createElement('div');
+                    analyticsNotice.id = 'plip-analytics-notice';
+                    analyticsNotice.className = 'border border-sky-500/20 bg-sky-500/5 rounded-2xl px-5 py-4 text-left';
+                    analyticsNotice.innerHTML = `
+                        <p class="text-[11px] sm:text-xs text-sky-200/90 font-bold mb-1.5 flex items-center gap-2">
+                            <i class="fa-solid fa-chart-line"></i> アクセス解析について
+                        </p>
+                        <p class="text-[10px] sm:text-[11px] text-slate-400 leading-relaxed">
+                            当サイトでは、利用状況の把握と改善のためGoogle Analyticsを使用しています。
+                        </p>
+                        <details class="mt-2 text-[10px] sm:text-[11px] text-slate-500">
+                            <summary class="cursor-pointer text-sky-300/90 hover:text-sky-200 select-none">詳しく見る</summary>
+                            <div class="mt-2 leading-relaxed space-y-1.5">
+                                <p>Google Analyticsは、Cookie等を利用してアクセス状況に関する情報を収集します。収集された情報はGoogleの規定に基づいて管理されます。</p>
+                                <p>
+                                    <a href="https://policies.google.com/privacy?hl=ja" target="_blank" rel="noopener noreferrer" class="text-sky-300 hover:text-sky-200 underline">
+                                        Google プライバシーポリシー
+                                    </a>
+                                </p>
+                            </div>
+                        </details>
+                    `;
+
+                    if (rightsNotice) {
+                        rightsNotice.insertAdjacentElement('afterend', analyticsNotice);
+                    } else {
+                        footerInner.prepend(analyticsNotice);
+                    }
+                }
             }
 
             // ③ 公開用(isForEdit=false)の場合、編集用UIや開発用モーダルをDOMから完全消去
